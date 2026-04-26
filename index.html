@@ -1,0 +1,2038 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnóstico — Ciclo de Marca · MAM</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f9f9f7;
+    --bg3: #f4f4f0;
+    --green: #c8e6b0;
+    --green-dark: #7ab356;
+    --green-light: #f0f7ea;
+    --black: #0d0d0d;
+    --gray: #6b6b6b;
+    --gray-light: #d0d0cc;
+    --gray-ultra: #f0f0ec;
+    --border: #e4e4de;
+    --critical: #c0392b;
+    --vulnerable: #d4680a;
+    --stable: #c49a00;
+    --healthy: #3a8f4a;
+    --text: #0d0d0d;
+    --text-muted: #6b6b6b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ─── TELA INICIAL ─── */
+  #screen-start {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+
+  #screen-start::before {
+    content: '';
+    position: absolute;
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(200,230,176,0.35) 0%, transparent 65%);
+    top: -200px; right: -200px;
+    pointer-events: none;
+  }
+
+  #screen-start::after {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(200,230,176,0.2) 0%, transparent 65%);
+    bottom: -100px; left: -100px;
+    pointer-events: none;
+  }
+
+  .start-logo {
+    margin-bottom: 48px;
+  }
+
+  .start-logo svg {
+    height: 36px;
+    width: auto;
+  }
+
+  .start-badge {
+    background: var(--green-light);
+    border: 1px solid var(--green);
+    color: var(--green-dark);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 7px 20px;
+    border-radius: 100px;
+    margin-bottom: 28px;
+  }
+
+  .start-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(36px, 5.5vw, 72px);
+    font-weight: 900;
+    text-align: center;
+    line-height: 1.05;
+    max-width: 780px;
+    margin-bottom: 20px;
+    color: var(--black);
+    letter-spacing: -2px;
+  }
+
+  .start-title em {
+    font-style: italic;
+    font-family: 'Lora', serif;
+    font-weight: 400;
+    color: var(--green-dark);
+    letter-spacing: -1px;
+  }
+
+  .start-subtitle {
+    font-size: 16px;
+    color: var(--text-muted);
+    text-align: center;
+    max-width: 500px;
+    line-height: 1.75;
+    margin-bottom: 52px;
+    font-weight: 400;
+  }
+
+  .version-selector {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 44px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .version-card {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 32px 36px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    max-width: 290px;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .version-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+
+  .version-card:hover {
+    border-color: var(--green-dark);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 60px rgba(122,179,86,0.15);
+  }
+
+  .version-card:hover::after,
+  .version-card.selected::after {
+    background: var(--green-dark);
+  }
+
+  .version-card.selected {
+    border-color: var(--green-dark);
+    background: var(--green-light);
+    box-shadow: 0 20px 60px rgba(122,179,86,0.12);
+  }
+
+  .version-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--green-dark);
+    margin-bottom: 10px;
+  }
+
+  .version-name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    color: var(--black);
+    letter-spacing: -0.5px;
+  }
+
+  .version-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.65;
+    margin-bottom: 18px;
+    font-weight: 400;
+  }
+
+  .version-count {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--green-dark);
+  }
+
+  .btn-primary {
+    background: var(--black);
+    color: #fff;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 18px 52px;
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 32px rgba(13,13,13,0.15);
+  }
+
+  .btn-primary:hover {
+    background: var(--green-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 48px rgba(122,179,86,0.3);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* ─── QUESTIONÁRIO ─── */
+  #screen-quiz { display: none; min-height: 100vh; }
+
+  .quiz-header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 40px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .quiz-logo svg { height: 28px; width: auto; }
+
+  .progress-wrap { flex: 1; max-width: 480px; }
+
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+    letter-spacing: 0.3px;
+  }
+
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--black);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  .quiz-body {
+    padding: 110px 24px 80px;
+    max-width: 740px;
+    margin: 0 auto;
+  }
+
+  .block-header {
+    margin-bottom: 44px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .block-number {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--green-dark);
+    margin-bottom: 10px;
+  }
+
+  .block-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 26px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    letter-spacing: -0.5px;
+    color: var(--black);
+  }
+
+  .block-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    font-weight: 400;
+    max-width: 540px;
+  }
+
+  .block-note {
+    margin-top: 16px;
+    padding: 16px 20px;
+    background: var(--green-light);
+    border-left: 3px solid var(--green-dark);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  .block-note strong { color: var(--green-dark); }
+
+  .question-card {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 16px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+
+  .question-card.answered {
+    border-color: var(--green-dark);
+    box-shadow: 0 4px 20px rgba(122,179,86,0.08);
+  }
+
+  .question-num {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gray-light);
+    margin-bottom: 10px;
+  }
+
+  .question-text {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    color: var(--black);
+  }
+
+  .options { display: flex; flex-direction: column; gap: 8px; }
+
+  .option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 13px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--bg);
+  }
+
+  .option:hover {
+    border-color: var(--green-dark);
+    background: var(--green-light);
+  }
+
+  .option.selected {
+    border-color: var(--green-dark);
+    background: var(--green-light);
+  }
+
+  .option-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .option.selected .option-dot {
+    border-color: var(--green-dark);
+    background: var(--green-dark);
+  }
+
+  .option.selected .option-dot::after {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #fff;
+  }
+
+  .option-score {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gray-light);
+    flex-shrink: 0;
+    margin-top: 3px;
+    min-width: 16px;
+  }
+
+  .option.selected .option-score { color: var(--green-dark); }
+
+  .option-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.55;
+    font-weight: 400;
+    transition: color 0.2s;
+  }
+
+  .option.selected .option-text { color: var(--black); font-weight: 500; }
+
+  .quiz-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 36px;
+    gap: 16px;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 13px 28px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--black);
+    color: var(--black);
+  }
+
+  .block-progress {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .block-progress span { color: var(--green-dark); }
+
+  /* ─── ALERTA DE REVISÃO ─── */
+  .review-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: var(--green-light);
+    border: 1px solid var(--green);
+    border-left: 3px solid var(--green-dark);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-top: 32px;
+  }
+
+  .review-alert-icon {
+    font-size: 18px;
+    color: var(--green-dark);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .review-alert-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.65;
+    font-weight: 400;
+  }
+
+  .review-alert-text strong {
+    color: var(--green-dark);
+    font-weight: 700;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  /* ─── RELATÓRIO ─── */
+  #screen-report { display: none; padding: 0; }
+
+  .report-top {
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .report-top svg { height: 30px; width: auto; }
+
+  .report-meta { text-align: right; }
+  .report-meta-company { font-size: 13px; font-weight: 700; color: var(--black); }
+  .report-meta-info { font-size: 11px; color: var(--text-muted); margin-top: 2px; font-weight: 500; }
+
+  .btn-pdf {
+    background: var(--black);
+    color: #fff;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .btn-pdf:hover {
+    background: var(--green-dark);
+    transform: translateY(-1px);
+  }
+
+  .btn-pdf:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .report-wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 60px 24px 80px;
+  }
+
+  .report-header {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+
+  .report-badge {
+    display: inline-block;
+    background: var(--green-light);
+    border: 1px solid var(--green);
+    color: var(--green-dark);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 7px 20px;
+    border-radius: 100px;
+    margin-bottom: 24px;
+  }
+
+  .report-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(30px, 4.5vw, 52px);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 14px;
+    letter-spacing: -1.5px;
+    color: var(--black);
+  }
+
+  .report-subtitle {
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.75;
+    max-width: 500px;
+    margin: 0 auto;
+    font-weight: 400;
+  }
+
+  /* Fase geral */
+  .phase-card {
+    border-radius: 24px;
+    padding: 52px 48px;
+    margin-bottom: 32px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    background: var(--black);
+    color: #fff;
+  }
+
+  .phase-card::before {
+    content: '';
+    position: absolute;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(200,230,176,0.12) 0%, transparent 65%);
+    top: -150px; right: -100px;
+    pointer-events: none;
+  }
+
+  .phase-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 16px;
+  }
+
+  .phase-name {
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(44px, 7vw, 80px);
+    font-weight: 900;
+    letter-spacing: -3px;
+    line-height: 1;
+    margin-bottom: 28px;
+    color: var(--green);
+  }
+
+  /* Velocímetro */
+  .gauge-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 48px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .gauge-wrap { position: relative; width: 200px; height: 110px; }
+
+  .gauge-wrap canvas { width: 200px !important; height: 110px !important; }
+
+  .gauge-center {
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+
+  .gauge-value {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 32px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .gauge-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.45);
+    margin-top: 2px;
+  }
+
+  .phase-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    text-align: left;
+  }
+
+  .phase-stat {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .phase-stat-value {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--green);
+    letter-spacing: -1px;
+    min-width: 64px;
+  }
+
+  .phase-stat-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .phase-desc {
+    font-size: 14px;
+    line-height: 1.85;
+    color: rgba(255,255,255,0.6);
+    max-width: 600px;
+    margin: 0 auto;
+    font-weight: 400;
+  }
+
+  /* Alert */
+  .alert-strip {
+    background: #fffbf0;
+    border: 1px solid #f0d88a;
+    border-left: 3px solid #c49a00;
+    border-radius: 12px;
+    padding: 18px 24px;
+    margin-bottom: 32px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .alert-strip strong { color: #8a6d00; }
+
+  /* Sections */
+  .section {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 36px;
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+    color: var(--black);
+  }
+
+  .section-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  .chart-wrap { max-width: 440px; margin: 0 auto; }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+    justify-content: center;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* Blocos */
+  .blocks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .block-card {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 18px;
+    padding: 26px;
+    transition: transform 0.25s, box-shadow 0.25s;
+  }
+
+  .block-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+  }
+
+  .bc-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .bc-num {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gray-light);
+    margin-bottom: 4px;
+  }
+
+  .bc-name {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--black);
+  }
+
+  .bc-pct {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 34px;
+    font-weight: 900;
+    line-height: 1;
+    flex-shrink: 0;
+    letter-spacing: -1px;
+  }
+
+  .bc-bar-wrap {
+    height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+
+  .bc-bar { height: 100%; border-radius: 4px; }
+
+  .bc-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 100px;
+    margin-bottom: 12px;
+  }
+
+  .bc-status-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  .bc-insight {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.65;
+    font-weight: 400;
+  }
+
+  /* Status colors */
+  .s-critical .bc-pct { color: var(--critical); }
+  .s-critical .bc-bar { background: var(--critical); }
+  .s-critical .bc-status { background: #fdf0ee; color: var(--critical); }
+  .s-critical .bc-status-dot { background: var(--critical); }
+  .s-critical { border-color: rgba(192,57,43,0.2); }
+
+  .s-vulnerable .bc-pct { color: var(--vulnerable); }
+  .s-vulnerable .bc-bar { background: var(--vulnerable); }
+  .s-vulnerable .bc-status { background: #fef3ea; color: var(--vulnerable); }
+  .s-vulnerable .bc-status-dot { background: var(--vulnerable); }
+  .s-vulnerable { border-color: rgba(212,104,10,0.2); }
+
+  .s-stable .bc-pct { color: var(--stable); }
+  .s-stable .bc-bar { background: var(--stable); }
+  .s-stable .bc-status { background: #fdf8e1; color: var(--stable); }
+  .s-stable .bc-status-dot { background: var(--stable); }
+
+  .s-healthy .bc-pct { color: var(--healthy); }
+  .s-healthy .bc-bar { background: var(--healthy); }
+  .s-healthy .bc-status { background: var(--green-light); color: var(--healthy); }
+  .s-healthy .bc-status-dot { background: var(--healthy); }
+  .s-healthy { border-color: rgba(58,143,74,0.25); }
+
+  /* Diagnóstico */
+  .diag-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 24px;
+  }
+
+  @media (max-width: 600px) {
+    .diag-grid { grid-template-columns: 1fr; }
+    .blocks-grid { grid-template-columns: 1fr; }
+  }
+
+  .diag-col-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1.5px solid var(--border);
+  }
+
+  .diag-col-label.s { color: var(--healthy); border-color: rgba(58,143,74,0.2); }
+  .diag-col-label.v { color: var(--critical); border-color: rgba(192,57,43,0.2); }
+
+  .diag-item {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  .diag-item strong { color: var(--black); font-weight: 700; }
+
+  .diag-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 7px; }
+  .diag-dot.s { background: var(--healthy); }
+  .diag-dot.v { background: var(--critical); }
+
+  .pattern-box {
+    background: var(--green-light);
+    border: 1px solid var(--green);
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-top: 24px;
+  }
+
+  .pattern-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--green-dark);
+    margin-bottom: 10px;
+  }
+
+  .pattern-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.8;
+    font-weight: 400;
+  }
+
+  .pattern-text strong { color: var(--black); font-weight: 700; }
+
+  /* Próximos passos */
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 24px;
+  }
+
+  @media (max-width: 700px) { .steps-grid { grid-template-columns: 1fr; } }
+
+  .step-card {
+    background: var(--bg2);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+  }
+
+  .step-num {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--border);
+    line-height: 1;
+    margin-bottom: 10px;
+    letter-spacing: -1px;
+  }
+
+  .step-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--black); }
+  .step-desc { font-size: 12px; color: var(--text-muted); line-height: 1.65; font-weight: 400; }
+
+  /* CTA */
+  .cta-section {
+    background: var(--black);
+    border-radius: 24px;
+    padding: 56px 48px;
+    text-align: center;
+    margin-top: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(200,230,176,0.1) 0%, transparent 65%);
+    top: -100px; right: -80px;
+    pointer-events: none;
+  }
+
+  .cta-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--green-dark);
+    margin-bottom: 16px;
+  }
+
+  .cta-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(22px, 3.5vw, 34px);
+    font-weight: 900;
+    line-height: 1.2;
+    margin-bottom: 16px;
+    color: #fff;
+    letter-spacing: -1px;
+    position: relative;
+  }
+
+  .cta-desc {
+    font-size: 14px;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.8;
+    max-width: 480px;
+    margin: 0 auto 36px;
+    font-weight: 400;
+    position: relative;
+  }
+
+  .btn-cta {
+    display: inline-block;
+    background: var(--green);
+    color: var(--black);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    padding: 18px 52px;
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.3s;
+    letter-spacing: 0.3px;
+    position: relative;
+  }
+
+  .btn-cta:hover {
+    background: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 16px 48px rgba(200,230,176,0.2);
+  }
+
+  .btn-cta.btn-cta-secondary {
+    background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.7);
+  }
+
+  .btn-cta.btn-cta-secondary:hover {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    box-shadow: none;
+  }
+
+  .cta-note {
+    margin-top: 18px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.25);
+    font-weight: 500;
+    position: relative;
+  }
+
+  .btn-restart {
+    display: block;
+    margin: 32px auto 0;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* ─── BANNER DE RETOMADA ─── */
+  #resume-banner {
+    position: fixed;
+    bottom: -160px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 48px);
+    max-width: 680px;
+    background: var(--black);
+    border-radius: 18px;
+    padding: 20px 24px;
+    z-index: 999;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.2);
+    transition: bottom 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  #resume-banner.visible { bottom: 24px; }
+
+  .resume-inner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .resume-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    color: var(--green);
+  }
+
+  .resume-content { flex: 1; min-width: 200px; }
+
+  .resume-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 3px;
+    letter-spacing: -0.2px;
+  }
+
+  .resume-desc {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  .resume-desc strong { color: rgba(255,255,255,0.8); }
+
+  .resume-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .resume-btn-yes {
+    background: var(--green);
+    color: var(--black);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 10px 22px;
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .resume-btn-yes:hover { background: #d4f0b8; transform: translateY(-1px); }
+
+  .resume-btn-no {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.35);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    white-space: nowrap;
+  }
+
+  .resume-btn-no:hover { color: rgba(255,255,255,0.6); }
+
+  @media (max-width: 500px) {
+    .resume-inner { flex-direction: column; align-items: flex-start; }
+    .resume-actions { width: 100%; }
+    .resume-btn-yes { flex: 1; text-align: center; }
+  }
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── FORMULÁRIO ─── */
+  #screen-form {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+
+  #screen-form::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(200,230,176,0.25) 0%, transparent 65%);
+    top: -150px; right: -150px;
+    pointer-events: none;
+  }
+
+  .form-wrap {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 24px;
+    padding: 48px;
+    max-width: 520px;
+    width: 100%;
+    position: relative;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.06);
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .form-logo {
+    margin-bottom: 28px;
+  }
+
+  .form-logo svg { height: 26px; width: auto; }
+
+  .form-badge {
+    display: inline-block;
+    background: var(--green-light);
+    border: 1px solid var(--green);
+    color: var(--green-dark);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 2.5px; text-transform: uppercase;
+    padding: 5px 14px; border-radius: 100px;
+    margin-bottom: 20px;
+  }
+
+  .form-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 26px; font-weight: 900;
+    letter-spacing: -0.8px; line-height: 1.15;
+    color: var(--black); margin-bottom: 10px;
+  }
+
+  .form-subtitle {
+    font-size: 13px; color: var(--text-muted);
+    line-height: 1.7; font-weight: 400;
+    margin-bottom: 32px;
+  }
+
+  .form-fields { display: flex; flex-direction: column; gap: 18px; margin-bottom: 20px; }
+
+  .form-group { display: flex; flex-direction: column; gap: 7px; }
+
+  .form-label {
+    font-size: 12px; font-weight: 700;
+    color: var(--black); letter-spacing: 0.2px;
+  }
+
+  .form-required { color: var(--critical); }
+
+  .form-input {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px; font-weight: 400;
+    color: var(--black);
+    background: var(--bg2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 13px 16px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+  }
+
+  .form-input::placeholder { color: var(--gray-light); }
+
+  .form-input:focus {
+    border-color: var(--green-dark);
+    box-shadow: 0 0 0 3px rgba(122,179,86,0.1);
+    background: var(--bg);
+  }
+
+  .form-input.error {
+    border-color: var(--critical);
+    box-shadow: 0 0 0 3px rgba(192,57,43,0.08);
+  }
+
+  .form-privacy {
+    font-size: 11px; color: var(--gray-light);
+    font-weight: 500; text-align: center;
+    margin-bottom: 20px; line-height: 1.5;
+  }
+
+  .form-back {
+    display: block; margin: 16px auto 0;
+    background: transparent; border: none;
+    color: var(--text-muted);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px; font-weight: 600;
+    cursor: pointer; text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  @media (max-width: 560px) {
+    .form-wrap { padding: 32px 24px; }
+    .form-title { font-size: 22px; }
+  }
+
+  .fade { animation: fadeUp 0.6s ease both; }
+  .fade-2 { animation: fadeUp 0.6s 0.1s ease both; }
+  .fade-3 { animation: fadeUp 0.6s 0.2s ease both; }
+  .fade-4 { animation: fadeUp 0.6s 0.3s ease both; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  @media (max-width: 600px) {
+    .quiz-header { padding: 12px 16px; }
+    .quiz-body { padding: 90px 16px 60px; }
+    .report-top { padding: 16px 20px; }
+    .report-wrap { padding: 40px 16px 60px; }
+    .phase-card { padding: 36px 24px; }
+    .section { padding: 24px 20px; }
+    .cta-section { padding: 36px 24px; }
+    .gauge-section { gap: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SVG do logo MAM inline para reutilização -->
+<svg style="display:none">
+  <symbol id="mam-logo" viewBox="0 0 743.9 150">
+    <polygon points="690.5 17.9 657.7 106.2 651.9 121.8 646.1 106.2 613.3 17.9 581.2 17.9 581.2 132.1 599.9 132.1 599.9 35.3 635.9 132.1 667.9 132.1 703.9 35.3 703.9 132.1 722.6 132.1 722.6 17.9 690.5 17.9"/>
+    <path d="M473,17.9l-45.4,114.2h20l19.6-49.3,6.3,15.9h43.3l13.3,33.4h20l-45.4-114.2h-31.6ZM467.1,82.7l21.6-54.4,21.6,54.4h-43.2Z"/>
+    <polygon points="364.2 17.9 325.6 121.8 287 17.9 254.9 17.9 254.9 132.1 273.7 132.1 273.7 35.3 309.7 132.1 341.6 132.1 377.6 35.3 377.6 132.1 396.3 132.1 396.3 17.9 364.2 17.9"/>
+    <path d="M92,61.9L46.9,18h-25.7v114.1h25.7l31.6-30.9v-26.2l6.9,6.7h0s51.6,50.3,51.6,50.3h25.7V18h-25.7l-45.1,43.9ZM40,112.6V37.4l38.5,37.6-38.5,37.6ZM144,112.6l-38.5-37.6,38.5-37.6v75.2Z"/>
+  </symbol>
+</svg>
+
+<!-- ═══════════ TELA INICIAL ═══════════ -->
+<div id="screen-start">
+  <div class="start-logo">
+    <svg viewBox="0 0 743.9 150" fill="#0d0d0d"><use href="#mam-logo"/></svg>
+  </div>
+  <div class="start-badge">Diagnóstico Estratégico</div>
+  <h1 class="start-title">Onde está sua marca<br><em>no ciclo?</em></h1>
+  <p class="start-subtitle">Um diagnóstico estratégico, estruturado em 7 dimensões, que revelará a posição real da sua marca no Ciclo de Marca — e quais ações futuras para continuar sendo uma marca forte.</p>
+
+  <div class="version-selector">
+    <div class="version-card" onclick="selectVersion('essential')" id="card-essential">
+      <div class="version-tag">Diagnóstico Sintético</div>
+      <div class="version-name">Diagnóstico Sintético</div>
+      <div class="version-desc">Uma análise mais superficial da posição da sua marca no Ciclo de Marca.</div>
+      <div class="version-count">70 perguntas · ~20 minutos</div>
+    </div>
+    <div class="version-card" onclick="selectVersion('deep')" id="card-deep">
+      <div class="version-tag">Diagnóstico Analítico</div>
+      <div class="version-name">Diagnóstico Analítico</div>
+      <div class="version-desc">Uma análise profunda e técnica da posição da sua marca no Ciclo de Marca.</div>
+      <div class="version-count">140 perguntas · ~40 minutos</div>
+    </div>
+  </div>
+
+  <button class="btn-primary" id="btn-start" onclick="goToForm()" disabled>Iniciar Diagnóstico</button>
+</div>
+
+<!-- ═══════════ FORMULÁRIO ═══════════ -->
+<div id="screen-form" style="display:none">
+  <div class="form-wrap">
+    <div class="form-logo">
+      <svg viewBox="0 0 743.9 150" fill="#0d0d0d"><use href="#mam-logo"/></svg>
+    </div>
+    <div class="form-badge" id="form-badge">Diagnóstico Sintético</div>
+    <h2 class="form-title">Antes de começar,<br>precisamos te conhecer</h2>
+    <p class="form-subtitle">Suas informações são utilizadas exclusivamente para personalizar o seu relatório e entrar em contato caso necessário.</p>
+
+    <div class="form-fields">
+      <div class="form-group">
+        <label class="form-label">Nome Completo <span class="form-required">*</span></label>
+        <input class="form-input" type="text" id="field-name" placeholder="Como prefere ser chamado?" required oninput="checkForm()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nome da Empresa <span class="form-required">*</span></label>
+        <input class="form-input" type="text" id="field-company" placeholder="Qual é o nome da sua empresa?" required oninput="checkForm()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-mail <span class="form-required">*</span></label>
+        <input class="form-input" type="email" id="field-email" placeholder="seu@email.com.br" required oninput="checkForm()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">WhatsApp <span class="form-required">*</span></label>
+        <input class="form-input" type="tel" id="field-phone" placeholder="(00) 00000-0000" required oninput="formatPhone(this); checkForm()">
+      </div>
+    </div>
+
+    <div class="form-privacy">
+      🔒 Seus dados são confidenciais e não serão compartilhados com terceiros.
+    </div>
+
+    <button class="btn-primary" id="btn-form-submit" onclick="startQuiz()" disabled style="width:100%">
+      Começar o Diagnóstico →
+    </button>
+
+    <button class="form-back" onclick="backToStart()">← Voltar</button>
+  </div>
+</div>
+
+<!-- ═══════════ QUESTIONÁRIO ═══════════ -->
+<div id="screen-quiz">
+  <div class="quiz-header">
+    <div class="quiz-logo">
+      <svg viewBox="0 0 743.9 150" fill="#0d0d0d"><use href="#mam-logo"/></svg>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-info">
+        <span id="progress-label">Bloco 1 de 7</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+  <div class="quiz-body" id="quiz-body"></div>
+</div>
+
+<!-- ═══════════ RELATÓRIO ═══════════ -->
+<div id="screen-report">
+  <div class="report-top">
+    <svg viewBox="0 0 743.9 150" fill="#0d0d0d"><use href="#mam-logo"/></svg>
+    <div class="report-meta">
+      <div class="report-meta-company" id="report-company-name">Diagnóstico de Ciclo de Marca</div>
+      <div class="report-meta-info" id="report-meta-info">Versão Profunda · 140 perguntas</div>
+    </div>
+    <button class="btn-pdf" id="btn-pdf" onclick="downloadPDF()">
+      ↓ Baixar PDF
+    </button>
+  </div>
+  <div class="report-wrap">
+    <div class="report-header fade">
+      <div class="report-badge">Diagnóstico Concluído</div>
+      <h1 class="report-title">Seu Relatório de<br>Ciclo de Marca</h1>
+      <p class="report-subtitle">Análise completa das 7 dimensões com posicionamento no ciclo, pontuação por bloco e recomendações estratégicas.</p>
+    </div>
+    <div id="report-content"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// DADOS
+// ══════════════════════════════════════
+const BLOCKS = [
+  { id:1, name:"Percepção e Reputação de Mercado", desc:"Como sua marca é vista, lembrada e valorizada pelo mercado.", questions:{ essential:[{text:"Quando você se apresenta para um potencial cliente pela primeira vez, qual situação acontece com mais frequência?",options:["Ele nunca ouviu falar da minha marca e preciso explicar tudo do zero","Já ouviu meu nome em algum momento, mas não sabe bem o que faço","Me conhece superficialmente, mas sem clareza sobre meu diferencial","Já me conhece e tem uma boa impressão prévia da minha marca","Já chega com a decisão praticamente tomada, pois conhece e confia na minha marca"]},{text:"Como a maioria dos seus novos clientes chega até você?",options:["Através de prospecção ativa minha — eu vou até eles","Por indicação direta de pessoas próximas, como amigos e familiares","Por indicação de clientes satisfeitos","Me encontram organicamente — redes sociais, Google, eventos","A marca me antecede — chegam já me conhecendo e querendo especificamente meu trabalho"]},{text:"Se eu pedisse para 10 clientes descreverem minha marca em três palavras, as respostas seriam parecidas entre si.",options:["Discordo totalmente — as respostas seriam muito diferentes","Discordo — haveria pouca consistência","Nem concordo nem discordo — nunca testei isso","Concordo — acredito que haveria bastante consistência","Concordo totalmente — sei exatamente como sou percebido e é consistente"]},{text:"Com que frequência sua marca é mencionada espontaneamente — em conversas, redes sociais ou comunidades do setor — sem que você tenha provocado essa menção?",options:["Nunca ou quase nunca","Raramente, apenas em situações muito específicas","Às vezes, mas de forma irregular e sem consistência","Com frequência, minha marca aparece em conversas do setor","Constantemente, sou uma referência mencionada de forma natural no meu mercado"]},{text:"Quando sua marca é mencionada ou avaliada publicamente, qual é o sentimento predominante que você identifica?",options:["Há associações negativas que já chegaram ao meu conhecimento","O sentimento é neutro — mencionam, mas sem entusiasmo","Geralmente positivo, mas sem muito destaque","Positivo e com elogios específicos recorrentes","Muito positivo, com defensores ativos que recomendam espontaneamente"]},{text:"Sou reconhecido como referência ou autoridade no meu segmento pelo mercado.",options:["Discordo totalmente — não tenho esse reconhecimento","Discordo — tenho algum reconhecimento, mas não como referência","Neutro — em alguns círculos sim, na maioria não","Concordo — sou visto como referência em boa parte do meu mercado","Concordo totalmente — sou uma autoridade reconhecida no setor"]},{text:"Minha marca aparece de forma consistente nos canais onde meu público toma decisões de compra.",options:["Discordo totalmente — minha presença é praticamente inexistente","Discordo — apareço, mas de forma irregular e inconsistente","Neutro — tenho presença em alguns canais, mas não nos principais","Concordo — estou presente nos principais canais do meu público","Concordo totalmente — minha marca é encontrada facilmente onde meu público está"]},{text:"Você já recebeu feedbacks ou sinais de que o mercado te enxerga de forma diferente do que você esperava ou gostaria?",options:["Sim, frequentemente — a percepção do mercado é bem diferente do que projeto","Sim, algumas vezes — há gaps relevantes entre o que projeto e o que percebem","Raramente — pequenas diferenças pontuais, nada significativo","Quase nunca — o mercado me enxerga de forma bastante alinhada ao que projeto","Nunca — tenho clareza e controle sobre como sou percebido"]},{text:"Com que frequência você busca ativamente entender como o mercado percebe sua marca — por meio de pesquisas, conversas estruturadas ou coleta de feedbacks?",options:["Nunca fiz isso de forma estruturada","Raramente — de forma muito informal e esporádica","Às vezes — tenho algumas práticas, mas sem consistência","Com frequência — tenho processos regulares de escuta de mercado","Sempre — a escuta de mercado faz parte da minha gestão de marca"]},{text:"O mercado consegue perceber com clareza o que diferencia minha marca das concorrentes, sem que eu precise explicar.",options:["Discordo totalmente — não há diferenciação clara percebida","Discordo — precisam de muita explicação para entender o diferencial","Neutro — alguns percebem, outros não","Concordo — meu diferencial é percebido pela maioria sem explicação","Concordo totalmente — meu diferencial é evidente e reconhecido pelo mercado"]}], deep:[{text:"Sua marca é reconhecida de forma consistente por diferentes perfis de público — clientes, parceiros, fornecedores e profissionais do setor?",options:["Não — praticamente desconhecida para a maioria desses públicos","Reconhecida apenas por clientes diretos, os demais não me conhecem","Conhecida em alguns círculos, mas de forma inconsistente","Reconhecida de forma positiva pela maioria desses públicos","Tenho reconhecimento sólido em todos esses públicos de forma consistente"]},{text:"Comparando com 2 anos atrás, como você avalia a reputação da sua marca no mercado hoje?",options:["Piorou significativamente","Piorou um pouco","Ficou igual — não avançou nem regrediu","Melhorou de forma consistente","Melhorou muito — houve uma transformação clara na percepção do mercado"]},{text:"Quando sua empresa enfrenta algum problema ou situação negativa, como o mercado costuma reagir?",options:["A situação se amplifica — o mercado perde confiança rapidamente","Gera dúvidas e questionamentos que demoram para se resolver","O mercado reage de forma neutra, sem grande impacto positivo ou negativo","A reputação construída amortece o impacto — o mercado dá o benefício da dúvida","A marca tem tanta credibilidade que crises são rapidamente superadas com apoio do próprio mercado"]},{text:"Minha marca é citada em discussões, rankings, listas ou conteúdos relevantes do meu setor produzidos por terceiros.",options:["Discordo totalmente — nunca fui citado por terceiros","Discordo — muito raramente e em contextos irrelevantes","Neutro — acontece ocasionalmente, mas sem consistência","Concordo — sou citado com frequência em contextos relevantes do setor","Concordo totalmente — faço parte das referências naturais do meu mercado"]},{text:"Quando as pessoas associam sua marca a outras referências, com que tipo de referência ela costuma ser associada?",options:["Não é associada a nenhuma referência relevante","Associada a referências medianas ou sem prestígio","Associada a referências razoáveis, mas sem destaque","Associada a boas referências e marcas respeitadas no setor","Associada às maiores referências e marcas de prestígio do mercado"]},{text:"O mercado reconhece minha marca pelo que ela representa e defende, e não apenas pelo produto ou serviço que entrega.",options:["Discordo totalmente — sou conhecido apenas pelo que vendo","Discordo — há pouco reconhecimento além do produto ou serviço","Neutro — alguns reconhecem, mas a maioria me associa apenas ao que entrego","Concordo — minha marca tem um significado que vai além do produto","Concordo totalmente — sou reconhecido por um propósito e posicionamento claros"]},{text:"Sua reputação de mercado te permite praticar preços acima da média do setor sem perder clientes?",options:["Não — preciso praticar preços abaixo da média para competir","Não — estou na média, mas com dificuldade de sustentar","Parcialmente — consigo a média, mas sinto resistência ao tentar subir","Sim — minha reputação justifica preços acima da média sem grande resistência","Sim — sou um dos mais caros do setor e isso é percebido como valor"]},{text:"Você tem uma estratégia deliberada para construir e proteger a reputação da sua marca no mercado?",options:["Não — a reputação foi se formando sem nenhuma gestão ativa","Raramente — faço ações pontuais, mas sem estratégia definida","Tenho algumas iniciativas, mas sem consistência ou planejamento claro","Sim — tenho ações regulares e deliberadas de construção de reputação","Sim — a gestão da reputação é parte estruturada da minha estratégia de marca"]},{text:"Eu consigo identificar situações concretas em que a reputação da minha marca gerou oportunidades de negócio que não teriam acontecido sem ela.",options:["Discordo totalmente — não consigo identificar nenhuma situação assim","Discordo — muito raramente isso aconteceu de forma clara","Neutro — talvez sim, mas não tenho clareza sobre isso","Concordo — consigo identificar oportunidades claras geradas pela reputação","Concordo totalmente — a reputação é um dos principais geradores de oportunidades do meu negócio"]},{text:"Se eu parasse de investir em marketing hoje, minha marca continuaria sendo lembrada e recomendada pelo mercado por pelo menos um ano.",options:["Discordo totalmente — desapareceria rapidamente","Discordo — perderia relevância em poucos meses","Neutro — talvez por um tempo curto, mas sem muita convicção","Concordo — a marca tem força própria para se sustentar por um bom período","Concordo totalmente — construí um ativo de marca com vida independente dos meus esforços imediatos"]}] } },
+  { id:2, name:"Inteligência Competitiva", desc:"O quanto sua marca conhece, monitora e responde ao ambiente competitivo.", questions:{ essential:[{text:"Qual das situações abaixo melhor descreve seu conhecimento sobre os principais concorrentes da sua marca?",options:["Não tenho clareza sobre quem são meus concorrentes diretos","Conheço seus nomes, mas sei pouco sobre como atuam","Conheço bem alguns concorrentes, mas não tenho visão completa do mercado","Conheço bem meus principais concorrentes — seus pontos fortes, fracos e estratégias","Tenho visão profunda e atualizada do cenário competitivo completo do meu mercado"]},{text:"Com que frequência você monitora ativamente as movimentações dos seus concorrentes?",options:["Nunca — não tenho nenhuma prática de monitoramento","Raramente — apenas quando algo chama atenção por acaso","Às vezes — de forma irregular e sem processo definido","Com frequência — tenho práticas regulares de acompanhamento","Sempre — tenho um processo estruturado e contínuo de monitoramento competitivo"]},{text:"Consigo articular com clareza e objetividade o que diferencia minha marca dos concorrentes de forma que o cliente perceba valor real nisso.",options:["Discordo totalmente — não tenho um diferencial claro definido","Discordo — tenho algo em mente, mas é vago e difícil de comunicar","Neutro — tenho um diferencial, mas nem sempre ele ressoa com o cliente","Concordo — meu diferencial é claro e percebido pela maioria dos clientes","Concordo totalmente — meu diferencial é reconhecido e valorizado pelo mercado de forma consistente"]},{text:"Com que frequência você perde clientes ou negociações para concorrentes?",options:["Com muita frequência — é uma realidade constante e preocupante","Com frequência — acontece bastante e já impacta o negócio","Às vezes — acontece, mas não de forma alarmante","Raramente — minha marca retém bem e perde pouco para concorrentes","Quase nunca — quando o cliente chega até mim, a concorrência raramente é um obstáculo"]},{text:"Como você se posiciona em relação às tendências do seu setor?",options:["Descubro as tendências quando já se tornaram realidade consolidada","Acompanho superficialmente, mas raramente ajo sobre elas","Acompanho com regularidade, mas tenho dificuldade de transformar isso em ação","Monitoro tendências e consigo incorporá-las ao meu negócio com agilidade","Antecipo tendências e frequentemente estou à frente do mercado"]},{text:"Comparando com 2 anos atrás, como você avalia a posição competitiva da sua marca no mercado?",options:["Perdemos espaço significativo para concorrentes","Perdemos um pouco de espaço, mas ainda nos sustentamos","Mantivemos a mesma posição — nem ganhamos nem perdemos","Ganhamos espaço de forma consistente","Avançamos significativamente e nos tornamos referência no mercado"]},{text:"Como o preço da sua marca se posiciona em relação aos concorrentes diretos?",options:["Preciso cobrar menos que a concorrência para fechar negócios","Pratico preços similares, mas sinto pressão constante para baixar","Estou na média do mercado sem grande diferenciação por preço","Cobro acima da média e o mercado aceita bem essa diferença","Sou um dos mais caros do setor e isso é percebido como sinal de qualidade"]},{text:"Minha marca possui elementos difíceis de copiar pelos concorrentes — metodologia própria, comunidade, reputação ou ativos exclusivos.",options:["Discordo totalmente — qualquer concorrente pode fazer o que faço","Discordo — tenho poucos elementos que me diferenciam de forma sustentável","Neutro — tenho alguns elementos, mas ainda são frágeis ou replicáveis","Concordo — tenho barreiras competitivas relevantes já construídas","Concordo totalmente — minha marca tem ativos únicos que criam vantagem competitiva duradoura"]},{text:"Quando um concorrente faz um movimento relevante, qual é sua reação típica?",options:["Fico sem ação — não sei bem como responder","Reajo de forma reativa e improvisada","Analiso, mas demoro para tomar uma decisão","Respondo com agilidade e de forma estratégica","Raramente preciso reagir — minha posição é sólida o suficiente para não ser ameaçada facilmente"]},{text:"Tenho clareza sobre por que clientes escolhem meus concorrentes em vez de mim — e uso esse conhecimento para evoluir minha proposta de valor.",options:["Discordo totalmente — não tenho essa clareza e nunca busquei entender","Discordo — tenho suposições, mas sem dados ou conversas reais","Neutro — já ouvi alguns motivos, mas não transformei isso em ação","Concordo — conheço os principais motivos e já ajustei minha proposta por causa disso","Concordo totalmente — esse conhecimento é parte da minha inteligência competitiva e me faz evoluir continuamente"]}], deep:[{text:"Além dos concorrentes diretos, você monitora substitutos, entrantes e mudanças tecnológicas que podem ameaçar sua posição?",options:["Não — só observo concorrentes diretos e de forma superficial","Raramente — já pensei nisso, mas não tenho nenhuma prática estruturada","Às vezes — monitoro alguns movimentos, mas sem visão sistêmica","Com frequência — tenho visão ampla do ecossistema competitivo","Sempre — monitoro o ecossistema completo e uso isso para antecipar ameaças e oportunidades"]},{text:"Minha marca ocupa um nicho ou território claro no mercado, onde é reconhecida como a melhor opção para um perfil específico de cliente.",options:["Discordo totalmente — tento atender todo mundo e não tenho nicho definido","Discordo — tenho um foco vago, mas não sou referência em nenhum nicho específico","Neutro — tenho algum foco, mas ainda não sou a referência clara nesse território","Concordo — sou reconhecido como referência em um nicho bem definido","Concordo totalmente — domino um território específico e sou a escolha natural para meu perfil de cliente"]},{text:"Com que frequência sua marca lança inovações que surpreendem o mercado e dificultam a cópia pelos concorrentes?",options:["Nunca — não temos cultura ou prática de inovação","Raramente — já inovamos, mas de forma pontual e sem consistência","Às vezes — temos iniciativas, mas a concorrência geralmente acompanha rápido","Com frequência — inovamos de forma consistente e mantemos vantagem por períodos relevantes","Sempre — somos reconhecidos como inovadores e definimos padrões no nosso setor"]},{text:"Sinto que minha posição competitiva está ameaçada por movimentos recentes do mercado ou de concorrentes específicos.",options:["Concordo totalmente — minha posição está claramente ameaçada e preciso agir com urgência","Concordo — sinto que estou perdendo terreno para movimentos competitivos recentes","Neutro — há sinais de ameaça, mas ainda não sei avaliar o impacto real","Discordo — há movimentos no mercado, mas não representam ameaça real no momento","Discordo totalmente — minha posição está sólida e não vejo ameaças relevantes"]},{text:"Você já conquistou clientes que anteriormente eram fiéis a um concorrente? Com que frequência isso acontece?",options:["Nunca — não consigo atrair clientes da concorrência","Raramente — aconteceu alguma vez, mas não é uma realidade consistente","Às vezes — acontece, mas sem uma estratégia clara por trás","Com frequência — tenho conseguido converter clientes da concorrência de forma consistente","Sempre — sou reconhecido por conquistar clientes de concorrentes, inclusive os mais fiéis"]},{text:"Minha marca possui parcerias ou alianças estratégicas que fortalecem minha posição competitiva no mercado.",options:["Discordo totalmente — não tenho parcerias estratégicas relevantes","Discordo — tenho algumas parcerias, mas sem impacto competitivo real","Neutro — tenho parcerias pontuais, mas ainda sem consistência estratégica","Concordo — tenho parcerias relevantes que fortalecem minha posição no mercado","Concordo totalmente — minhas parcerias são um ativo competitivo importante e difícil de replicar"]},{text:"Quando o mercado muda — por tecnologia, comportamento do consumidor ou regulação — qual é a velocidade de adaptação da sua marca?",options:["Muito lenta — geralmente somos os últimos a nos adaptar","Lenta — demoramos para reagir e perdemos oportunidades no processo","Moderada — nos adaptamos, mas sem vantagem competitiva no timing","Rápida — somos ágeis e nos adaptamos antes da maioria dos concorrentes","Muito rápida — antecipamos mudanças e frequentemente já estamos preparados antes que aconteçam"]},{text:"Utilizo dados e informações concretas sobre o mercado e os concorrentes para embasar minhas decisões estratégicas.",options:["Discordo totalmente — minhas decisões são baseadas em intuição, sem dados competitivos","Discordo — uso poucos dados e de forma muito superficial","Neutro — uso alguns dados, mas de forma inconsistente e sem processo","Concordo — tenho fontes de dados competitivos que uso regularmente nas decisões","Concordo totalmente — a inteligência competitiva baseada em dados é parte estruturada da minha gestão"]},{text:"Você tem sinais de que seus concorrentes monitoram ou se preocupam com os movimentos da sua marca?",options:["Não — não acredito que os concorrentes me observem","Raramente — talvez em algum momento, mas sem evidências claras","Às vezes — já percebi alguns sinais pontuais de que sou observado","Com frequência — é evidente que concorrentes acompanham meus movimentos","Sempre — sou uma referência que a concorrência monitora ativamente e tenta replicar"]},{text:"Tenho clareza sobre onde quero que minha marca esteja competitivamente daqui a 3 a 5 anos e estou tomando decisões hoje que constroem essa posição.",options:["Discordo totalmente — não tenho visão de longo prazo definida","Discordo — tenho uma ideia vaga, mas sem estratégia ou ações concretas","Neutro — tenho uma visão, mas ainda não está se traduzindo em decisões consistentes","Concordo — tenho clareza do destino e estou construindo essa posição de forma deliberada","Concordo totalmente — tenho uma estratégia competitiva de longo prazo clara e em execução consistente"]}] } },
+  { id:3, name:"Performance Comercial e Financeira", desc:"A saúde real do negócio através dos seus resultados comerciais e financeiros.", questions:{ essential:[{text:"Qual das situações abaixo melhor descreve o que acontece nas suas negociações comerciais?",options:["Quase sempre preciso oferecer desconto para fechar — sem desconto, perco o negócio","Com frequência preciso ceder no preço — a resistência é constante","Às vezes dou desconto, mas não é uma regra — depende do cliente","Raramente dou desconto — meu preço é aceito na maioria das negociações","Praticamente nunca dou desconto — o cliente compra pelo valor, não pelo preço"]},{text:"Como você descreveria a trajetória do seu faturamento nos últimos 12 meses?",options:["Caindo de forma consistente e preocupante","Oscilando para baixo — alguns meses bons, mas a tendência é de queda","Estagnado — fatura sempre na mesma faixa sem crescimento real","Crescendo de forma consistente, dentro do planejado","Crescendo acima do esperado — superando metas com consistência"]},{text:"Como você avalia a margem de lucro do seu negócio hoje?",options:["Muito ruim — mal cobre os custos ou opera no prejuízo","Ruim — cobre os custos, mas sobra muito pouco","Razoável — está dentro do aceitável, mas há muito espaço para melhorar","Boa — tenho margens saudáveis que permitem reinvestimento e crescimento","Excelente — minhas margens são acima da média do setor e crescem consistentemente"]},{text:"Qual das situações abaixo melhor descreve a previsibilidade financeira do seu negócio?",options:["Não tenho nenhuma previsibilidade — cada mês é uma surpresa","Tenho pouca previsibilidade — oscilações grandes e frequentes","Tenho previsibilidade parcial — alguns contratos fixos, mas muita dependência de novas vendas","Tenho boa previsibilidade — base recorrente sólida com crescimento consistente","Tenho alta previsibilidade — receita recorrente robusta que me permite planejar com segurança"]},{text:"Como você descreveria o tempo e o esforço necessários para converter um potencial cliente em cliente efetivo?",options:["Muito longo e desgastante — muitas reuniões, objeções e sem garantia de fechamento","Longo — exige bastante esforço e acompanhamento para chegar ao fechamento","Moderado — dentro do normal para o meu setor, sem grandes diferenciais","Curto — clientes decidem com relativa facilidade e rapidez","Muito curto — clientes chegam já decididos, o processo de venda é fluido e rápido"]},{text:"Qual é a proporção aproximada entre receita de clientes recorrentes e receita de novos clientes no seu faturamento?",options:["Quase 100% de novos clientes — não tenho recorrência relevante","Maioria de novos clientes — a recorrência existe, mas é pequena","Equilíbrio instável — metade recorrente, metade novo, mas sem consistência","Maioria recorrente — tenho uma base sólida de clientes que continuam comprando","Base majoritariamente recorrente e crescente — novos clientes são adicionais, não dependência"]},{text:"Como o ticket médio dos seus clientes evoluiu nos últimos 2 anos?",options:["Caiu — preciso cobrar menos para manter os clientes","Oscilou para baixo — pressão constante para reduzir preços","Ficou estagnado — não consigo aumentar sem perder clientes","Cresceu de forma consistente — consigo reajustar e expandir sem resistência relevante","Cresceu significativamente — clientes compram mais e aceitam preços maiores com naturalidade"]},{text:"De cada 10 propostas comerciais que você apresenta, quantas são convertidas em vendas em média?",options:["1 a 2 — taxa de conversão muito baixa","3 a 4 — abaixo do esperado, com muito esforço para pouco resultado","5 a 6 — conversão mediana, dentro do aceitável","7 a 8 — boa taxa de conversão, processo comercial eficiente","9 a 10 — altíssima conversão, clientes chegam praticamente decididos"]},{text:"A força da minha marca facilita ativamente o processo de vendas — reduzindo objeções, encurtando o ciclo e aumentando a taxa de fechamento.",options:["Discordo totalmente — a marca não tem impacto perceptível nas vendas","Discordo — raramente a marca é um fator relevante no fechamento","Neutro — às vezes ajuda, mas não de forma consistente","Concordo — a marca claramente facilita e acelera o processo comercial","Concordo totalmente — a marca é um dos principais ativos do processo de vendas"]},{text:"A saúde financeira atual do seu negócio permite investir em crescimento — marketing, pessoas, tecnologia, novos mercados — sem comprometer a operação?",options:["Não — estamos no limite, sem capacidade de investimento","Muito pouco — qualquer investimento exige sacrifício operacional","Parcialmente — consigo investir em algumas frentes, mas com restrições relevantes","Sim — tenho capacidade de investimento consistente sem comprometer a operação","Sim, com folga — tenho saúde financeira que permite investimentos estratégicos relevantes"]}], deep:[{text:"Qual é a concentração de receita nos seus principais clientes?",options:["1 ou 2 clientes representam mais de 70% do faturamento — risco altíssimo","Poucos clientes concentram a maior parte — dependência preocupante","Há alguma concentração, mas dentro de um nível administrável","Receita bem distribuída — nenhum cliente representa mais de 20% do faturamento","Carteira muito diversificada — perder qualquer cliente não compromete o negócio"]},{text:"Como você avalia o nível de inadimplência e a qualidade financeira dos seus clientes?",options:["Alta inadimplência — problema constante que impacta o fluxo de caixa","Inadimplência relevante — exige gestão intensa e ainda assim gera perdas","Inadimplência sob controle, mas ainda presente de forma significativa","Baixa inadimplência — clientes pagam bem e dentro dos prazos","Inadimplência irrelevante — minha base de clientes é financeiramente sólida e confiável"]},{text:"Como você avalia o custo e o esforço necessários para adquirir um novo cliente hoje?",options:["Muito alto — gasto muito para trazer clientes e o retorno demora","Alto — o custo de aquisição pressiona a margem de forma relevante","Moderado — dentro do aceitável para o setor, sem grande vantagem","Baixo — minha marca atrai clientes com custo de aquisição competitivo","Muito baixo — clientes chegam organicamente, o custo de aquisição é mínimo"]},{text:"Você consegue expandir receita dentro da sua base atual de clientes — por upsell, cross-sell ou aumento de escopo?",options:["Não — clientes compram o mínimo e não há expansão relevante","Raramente — já tentei, mas encontro muita resistência","Às vezes — acontece de forma pontual, sem consistência","Com frequência — tenho práticas que geram expansão consistente na base","Sempre — minha base cresce organicamente em receita, clientes compram mais ao longo do tempo"]},{text:"Como a sazonalidade impacta o faturamento do seu negócio?",options:["Impacto devastador — há meses em que o negócio quase para","Impacto relevante — oscilações grandes que dificultam a gestão financeira","Impacto moderado — existe sazonalidade, mas é administrável","Impacto pequeno — a marca já construiu estabilidade suficiente para minimizar os efeitos","Impacto irrelevante — temos receita previsível e estável ao longo do ano"]},{text:"Meu modelo de precificação é baseado no valor que entrego ao cliente, não no custo da operação ou no preço da concorrência.",options:["Discordo totalmente — precificamos por custo ou pela concorrência","Discordo — tentamos precificar por valor, mas a realidade do mercado nos força a ceder","Neutro — há elementos de valor na precificação, mas ainda muito influenciada por fatores externos","Concordo — precificamos predominantemente por valor e o mercado aceita","Concordo totalmente — nossa precificação é baseada em valor e isso é reconhecido e respeitado pelo mercado"]},{text:"Como você gerencia as metas financeiras do seu negócio?",options:["Não tenho metas definidas — a gestão é reativa ao que entra","Tenho metas vagas, mas sem acompanhamento estruturado","Tenho metas definidas, mas o acompanhamento é irregular","Tenho metas claras e acompanho com regularidade, ajustando quando necessário","Tenho um sistema robusto de gestão financeira com metas, indicadores e revisões periódicas"]},{text:"Consigo identificar retorno concreto e mensurável nos investimentos que faço em marketing, branding e comunicação da marca.",options:["Discordo totalmente — invisto, mas não consigo medir nenhum retorno","Discordo — há algum retorno, mas muito difuso e difícil de atribuir","Neutro — percebo resultados, mas não tenho clareza sobre o que gerou o quê","Concordo — tenho indicadores que me mostram o retorno dos investimentos em marca","Concordo totalmente — tenho clareza do ROI dos investimentos em marca e isso orienta minhas decisões"]},{text:"Quando o mercado enfrenta momentos de crise ou instabilidade econômica, como o seu negócio reage financeiramente?",options:["É devastador — crises nos derrubam de forma severa e demorada","Impacto relevante — sofremos bastante e demoramos para nos recuperar","Impacto moderado — sentimos, mas nos recuperamos dentro de um tempo razoável","Impacto pequeno — a solidez da marca nos protege na maior parte das crises","Somos resilientes — crises pouco nos afetam e às vezes até geramos oportunidades nelas"]},{text:"O meu negócio tem valor de mercado real — poderia ser vendido, licenciado ou escalado além da minha presença pessoal.",options:["Discordo totalmente — o negócio depende 100% de mim e não funcionaria sem minha presença","Discordo — há muita dependência pessoal, o valor de mercado seria muito baixo","Neutro — há alguma estrutura, mas ainda muito dependente da minha atuação direta","Concordo — o negócio tem processos e marca que funcionam além de mim","Concordo totalmente — construí um ativo real com valor de mercado independente da minha presença"]}] } },
+  { id:4, name:"Identidade, Branding e Posicionamento Estratégico", desc:"O quanto a marca sabe quem ela é e traduz isso em tudo que comunica e entrega.", questions:{ essential:[{text:"Se você tivesse 30 segundos para explicar por que sua marca existe — além de gerar lucro — qual seria sua situação?",options:["Não consigo responder com clareza — nunca parei para pensar nisso de forma estruturada","Tenho uma ideia vaga, mas não consigo articular de forma clara e convincente","Consigo responder, mas percebo que a resposta muda dependendo do contexto ou do interlocutor","Tenho clareza do propósito e consigo comunicá-lo de forma consistente","O propósito é cristalino, está internalizado por toda a equipe e se manifesta em tudo que a marca faz"]},{text:"Como o posicionamento atual da sua marca foi construído?",options:["Nunca foi definido — foi se formando ao acaso ao longo do tempo","Foi surgindo por demanda do mercado, sem uma escolha deliberada","Houve alguma reflexão, mas o posicionamento ainda é vago e pouco diferenciador","Foi definido de forma deliberada e está sendo construído com consistência","É fruto de um processo estratégico profundo e se traduz em todas as decisões da marca"]},{text:"A identidade visual da minha marca — logo, cores, tipografia, estilo — é reconhecível e consistente em todos os pontos de contato com o cliente.",options:["Discordo totalmente — não há consistência visual, cada peça parece de uma marca diferente","Discordo — há elementos visuais definidos, mas a aplicação é irregular e inconsistente","Neutro — existe uma identidade, mas com variações que prejudicam o reconhecimento","Concordo — a identidade visual é consistente na maioria dos pontos de contato","Concordo totalmente — a identidade visual é reconhecível, consistente e profissional em todos os contextos"]},{text:"Minha marca tem uma voz e linguagem próprias — um jeito único de se comunicar reconhecível independentemente do canal ou formato.",options:["Discordo totalmente — não há uma voz definida, comunicamos de formas muito diferentes","Discordo — há uma tentativa de consistência, mas ainda muito irregular","Neutro — existe alguma identidade verbal, mas não é forte o suficiente para ser reconhecida","Concordo — temos uma voz clara que se manifesta com consistência na comunicação","Concordo totalmente — nossa voz é reconhecível e diferenciada — as pessoas identificam nossa marca pelo jeito de comunicar"]},{text:"O que sua marca promete na comunicação corresponde de fato ao que o cliente experimenta na entrega?",options:["Há uma lacuna grande — prometemos mais do que entregamos consistentemente","Há algumas inconsistências relevantes entre o que comunicamos e o que entregamos","Em geral há coerência, mas com falhas pontuais que ainda precisam ser resolvidas","A entrega está alinhada com a promessa na grande maioria das vezes","A entrega supera consistentemente a promessa — o cliente sempre recebe mais do que esperava"]},{text:"Qual das situações abaixo melhor descreve sua clareza sobre para quem sua marca é destinada?",options:["Tentamos atender todo mundo — não temos um público definido","Temos uma ideia geral, mas aceitamos praticamente qualquer cliente que apareça","Temos um perfil de cliente em mente, mas ainda atendemos muitos fora desse perfil","Temos clareza do nosso público ideal e tomamos decisões com base nisso","Conhecemos profundamente nosso cliente ideal e recusamos clientes fora desse perfil quando necessário"]},{text:"Minha marca tem um posicionamento que a diferencia de forma clara e relevante no mercado — não apenas no discurso, mas na percepção real do cliente.",options:["Discordo totalmente — somos vistos como mais um no mercado","Discordo — temos um discurso de diferenciação, mas o mercado não percebe na prática","Neutro — há alguma diferenciação percebida, mas ainda fraca e inconsistente","Concordo — nossa diferenciação é percebida e valorizada pela maioria dos clientes","Concordo totalmente — somos reconhecidos como uma opção genuinamente diferente e superior no nosso território"]},{text:"Como você avalia a consistência da sua marca nos últimos 3 anos — em termos de identidade, comunicação e posicionamento?",options:["Muito inconsistente — mudamos muito sem uma evolução estratégica clara","Inconsistente — houve muitas mudanças de direção que confundiram o mercado","Moderadamente consistente — houve evoluções, mas com algumas rupturas desnecessárias","Consistente — evoluímos de forma coerente, mantendo a essência da marca","Muito consistente — a marca evoluiu com inteligência, fortalecendo sua identidade ao longo do tempo"]},{text:"Minha marca se manifesta de forma coerente em todos os pontos de contato com o cliente — do primeiro contato ao pós-venda, do digital ao presencial.",options:["Discordo totalmente — há grande inconsistência entre os diferentes pontos de contato","Discordo — alguns pontos de contato estão alinhados, mas há muitas lacunas","Neutro — há consistência em alguns canais, mas ainda muito irregular no conjunto","Concordo — a marca se manifesta de forma coerente na maioria dos pontos de contato","Concordo totalmente — a experiência de marca é consistente e reconhecível em todos os contextos"]},{text:"Qual das situações abaixo melhor descreve seu papel como guardião da identidade da sua marca?",options:["Não me vejo nesse papel — a marca vai se construindo sem uma gestão ativa da minha parte","Penso sobre isso às vezes, mas não tenho uma postura deliberada de guardião","Me preocupo com a marca, mas de forma reativa — quando algo sai do lugar","Sou ativo na gestão da identidade — tomo decisões que protegem e fortalecem a marca","Sou o guardião consciente da marca — cada decisão do negócio passa pelo filtro da identidade e do posicionamento"]}], deep:[{text:"Os valores da sua marca estão explicitamente definidos e se manifestam em decisões reais do negócio?",options:["Não temos valores definidos formalmente — existem apenas na cabeça do fundador","Temos valores declarados, mas eles raramente influenciam decisões concretas","Os valores existem e às vezes orientam decisões, mas sem consistência","Os valores são claros e se manifestam na maioria das decisões do negócio","Os valores são o filtro de todas as decisões — estão vivos na cultura e na operação da marca"]},{text:"Se sua empresa tem mais de um produto ou linha de negócio, como eles se relacionam com a marca principal?",options:["Não há nenhuma lógica — cada produto ou serviço existe de forma independente e desconectada","Há uma tentativa de organização, mas ainda muito confusa para o mercado","Existe alguma lógica, mas não está claramente comunicada ou percebida pelo cliente","A arquitetura de marca é clara e cada produto reforça a marca principal","Temos uma arquitetura de marca sofisticada que fortalece o conjunto e cada parte individualmente"]},{text:"Minha marca tem uma história clara, autêntica e envolvente que conecta emocionalmente o cliente ao propósito e à trajetória da empresa.",options:["Discordo totalmente — não temos uma história de marca definida ou comunicada","Discordo — temos alguns elementos de história, mas desconexos e pouco envolventes","Neutro — existe uma narrativa, mas ainda fraca e pouco explorada","Concordo — nossa história é clara, autêntica e usada de forma consistente na comunicação","Concordo totalmente — o storytelling é um dos nossos maiores ativos — conecta, engaja e diferencia"]},{text:"Com que frequência você revisa estrategicamente o posicionamento e a identidade da sua marca para garantir que continuam relevantes?",options:["Nunca — a marca foi definida uma vez e não foi revisada desde então","Raramente — apenas quando algo claramente não está funcionando","Às vezes — revisões pontuais, mas sem um processo ou periodicidade definida","Com frequência — tenho revisões regulares que garantem a evolução da marca","Sempre — a gestão estratégica da marca é um processo contínuo e estruturado"]},{text:"Minha marca tem um território claro — um conjunto de temas ou causas que são seus por direito e que o mercado associa exclusivamente a ela.",options:["Discordo totalmente — não temos território definido, comunicamos sobre tudo e nada","Discordo — tentamos ocupar alguns territórios, mas sem consistência ou exclusividade","Neutro — há alguns territórios em construção, mas ainda compartilhados com muitos concorrentes","Concordo — temos um território claro que estamos construindo com consistência","Concordo totalmente — dominamos um território específico que o mercado associa à nossa marca"]},{text:"A identidade da minha marca está internalizada pela equipe — as pessoas que trabalham comigo entendem, vivem e comunicam a marca de forma consistente.",options:["Discordo totalmente — a marca existe apenas na comunicação externa, não na cultura interna","Discordo — há pouca consciência de marca dentro da equipe","Neutro — alguns entendem, mas a internalização ainda é superficial e irregular","Concordo — a equipe tem clareza da marca e isso se reflete no comportamento e na entrega","Concordo totalmente — a marca é cultura — está no DNA de como a equipe pensa, age e entrega"]},{text:"Minha empresa construiu ativos de marca ao longo do tempo — metodologias próprias, linguagem exclusiva, símbolos reconhecíveis, comunidade, propriedade intelectual.",options:["Nenhum — não temos ativos de marca construídos de forma intencional","Muito poucos — alguns elementos embrionários, mas sem consistência ou reconhecimento","Alguns ativos em construção, mas ainda sem força ou reconhecimento relevante","Temos ativos relevantes que diferenciam e fortalecem nossa marca no mercado","Temos um portfólio robusto de ativos de marca que são reconhecidos e difíceis de replicar"]},{text:"As decisões estratégicas do meu negócio — novos produtos, parcerias, contratações, expansão — passam pelo filtro da identidade e do posicionamento da marca.",options:["Discordo totalmente — as decisões são tomadas por oportunidade, sem filtro de marca","Discordo — raramente a marca é um critério nas decisões estratégicas","Neutro — às vezes consideramos a marca, mas não de forma sistemática","Concordo — a marca é um critério relevante na maioria das decisões estratégicas","Concordo totalmente — nenhuma decisão estratégica relevante é tomada sem passar pelo filtro da marca"]},{text:"Sua marca é reconhecida apenas pelo nome completo ou já atingiu um nível em que símbolos, cores ou elementos visuais isolados a identificam?",options:["Nem o nome é amplamente reconhecido ainda","O nome é conhecido em alguns círculos, mas sem reconhecimento por elementos visuais","O nome é reconhecido, mas os elementos visuais ainda não têm vida própria","Nome e identidade visual são reconhecidos de forma consistente no nosso mercado","Elementos da nossa identidade — cores, símbolo, estilo — já nos identificam mesmo sem o nome"]},{text:"Penso na minha marca como um legado que vai além do negócio atual — algo que tem um impacto maior no mercado, no setor ou na sociedade.",options:["Discordo totalmente — a marca é apenas um instrumento comercial para mim","Discordo — penso nisso às vezes, mas não orienta minhas decisões","Neutro — começo a enxergar esse potencial, mas ainda não está traduzido em estratégia","Concordo — a visão de legado já orienta decisões importantes da marca","Concordo totalmente — a marca tem uma missão maior e isso se manifesta em tudo que fazemos"]}] } },
+  { id:5, name:"Experiência e Relacionamento com o Cliente", desc:"A qualidade real do vínculo entre a marca e seus clientes.", note:true, questions:{ essential:[{text:"Como você avalia a taxa de retenção dos seus clientes ao longo do tempo?",options:["Muito baixa — a maioria dos clientes compra uma vez e não volta","Baixa — há alguma retenção, mas a maioria não se mantém por muito tempo","Moderada — parte dos clientes retorna, mas sem consistência ou padrão claro","Alta — a maioria dos clientes continua comprando e mantém relacionamento ativo","Muito alta — temos uma base fiel que cresce em valor ao longo do tempo"]},{text:"Com que frequência clientes indicam sua marca para outras pessoas sem que você peça ou incentive?",options:["Nunca ou quase nunca — não recebo indicações espontâneas","Raramente — acontece de forma muito pontual e imprevisível","Às vezes — há indicações, mas sem consistência ou volume relevante","Com frequência — indicações espontâneas são uma fonte real de novos clientes","Sempre — clientes se tornam promotores ativos da marca"]},{text:"A experiência que meu cliente tem com a marca é consistente e previsível — independentemente do canal, do momento ou de quem está atendendo.",options:["Discordo totalmente — a experiência varia muito e de forma imprevisível","Discordo — há muita inconsistência que compromete a percepção da marca","Neutro — existe alguma consistência, mas com variações relevantes","Concordo — a experiência é consistente na grande maioria dos pontos de contato","Concordo totalmente — a experiência é padronizada, consistente e reconhecível em qualquer contexto"]},{text:"Como você coleta e utiliza o feedback dos seus clientes para evoluir a marca e a entrega?",options:["Não tenho nenhum processo de coleta de feedback estruturado","Recebo feedbacks esporádicos, mas raramente os transformo em ação","Coletamos feedbacks com alguma regularidade, mas o uso ainda é inconsistente","Temos processos regulares de escuta e os feedbacks orientam decisões concretas","A voz do cliente é central na nossa gestão — temos processos robustos que transformam feedback em evolução contínua"]},{text:"Quando um cliente tem um problema ou faz uma reclamação, qual é a resposta típica da sua marca?",options:["Lenta e defensiva — demoramos para responder e tendemos a justificar em vez de resolver","Reativa — resolvemos quando pressionados, mas sem proatividade","Adequada — resolvemos os problemas, mas de forma padronizada e sem encantamento","Ágil e empática — resolvemos com rapidez e cuidado, gerando satisfação mesmo na crise","Exemplar — transformamos problemas em oportunidades de fidelização, surpreendendo o cliente positivamente"]},{text:"Conheço profundamente meu cliente ideal — suas dores, desejos, medos, sonhos e o que realmente o faz escolher e permanecer com minha marca.",options:["Discordo totalmente — tenho um conhecimento muito superficial do meu cliente","Discordo — conheço o perfil básico, mas não tenho profundidade real","Neutro — tenho algum conhecimento, mas ainda há lacunas relevantes","Concordo — conheço bem meu cliente e uso esse conhecimento nas decisões","Concordo totalmente — tenho um conhecimento profundo e atualizado do meu cliente que orienta toda a estratégia"]},{text:"Como você avalia a qualidade da experiência que sua marca entrega após a venda?",options:["Muito fraca — após a venda o cliente praticamente some do nosso radar","Fraca — há algum suporte, mas o relacionamento pós-venda é quase inexistente","Moderada — cumprimos o básico, mas sem nada que surpreenda ou fidelize","Boa — temos um pós-venda estruturado que mantém o cliente engajado","Excelente — o pós-venda é um diferencial da nossa marca e uma fonte ativa de fidelização e upsell"]},{text:"Minha marca trata cada cliente de forma personalizada — reconhecendo seu histórico, suas preferências e suas necessidades específicas.",options:["Discordo totalmente — tratamos todos os clientes da mesma forma genérica","Discordo — há pouca personalização, o relacionamento é muito padronizado","Neutro — existe alguma personalização em alguns momentos, mas não é sistemática","Concordo — personalizamos o relacionamento de forma consistente com a maioria dos clientes","Concordo totalmente — cada cliente se sente único — a personalização é um pilar da nossa experiência"]},{text:"Existe alguma forma de comunidade ou sentimento de pertencimento em torno da sua marca?",options:["Não — cada cliente tem uma relação individual e isolada com a marca","Há algum senso de identificação, mas muito fraco e sem estrutura","Existe um embrião de comunidade, mas ainda pouco desenvolvido","Temos uma comunidade ativa em formação que fortalece o vínculo com a marca","Temos uma comunidade sólida — clientes se conectam entre si e isso amplifica o valor da marca"]},{text:"Se você pedisse para seus clientes avaliarem sua marca de 0 a 10, qual seria o resultado mais provável?",options:["Maioria entre 0 e 6 — clientes insatisfeitos ou indiferentes","Maioria entre 6 e 7 — clientes neutros, sem entusiasmo","Maioria em torno de 7 e 8 — satisfeitos, mas não encantados","Maioria entre 8 e 9 — clientes satisfeitos e propensos a indicar","Maioria em 9 e 10 — clientes encantados e promotores ativos da marca"]}], deep:[{text:"Você tem a jornada completa do seu cliente mapeada — desde o primeiro contato até o pós-venda?",options:["Não — nunca mapeamos a jornada do cliente de forma estruturada","Raramente pensamos sobre isso — existe de forma muito intuitiva","Temos um mapeamento parcial, mas com muitas lacunas ainda","Temos a jornada mapeada e usamos isso para melhorar a experiência","Temos um mapeamento profundo e atualizado que orienta toda a gestão da experiência do cliente"]},{text:"Minha marca tem momentos intencionais de encantamento — surpresas, gestos ou experiências que vão além do esperado e que o cliente nunca esquece.",options:["Discordo totalmente — entregamos o que foi contratado, sem nenhum extra intencional","Discordo — já fizemos isso esporadicamente, mas não é uma prática estruturada","Neutro — temos alguns momentos, mas ainda de forma inconsistente","Concordo — temos momentos de encantamento deliberados que fazem parte da experiência","Concordo totalmente — o encantamento é um pilar da nossa marca — criamos memórias que os clientes compartilham"]},{text:"Como evolui o valor financeiro gerado por um cliente ao longo do relacionamento com sua marca?",options:["Cai — clientes compram cada vez menos ao longo do tempo","Estagna — clientes compram sempre a mesma coisa, sem expansão","Cresce um pouco — há alguma expansão, mas sem consistência","Cresce de forma consistente — clientes compram mais e com maior frequência ao longo do tempo","Cresce significativamente — temos clientes que multiplicaram seu valor ao longo do relacionamento"]},{text:"Você tem algum processo para identificar e recuperar clientes que estão se afastando antes que eles saiam de fato?",options:["Não — só percebemos que perdemos um cliente depois que ele já foi","Raramente — identificamos alguns casos, mas sem processo estruturado","Às vezes — temos alguma percepção, mas a ação ainda é reativa e tardia","Com frequência — temos indicadores que nos alertam e agimos de forma proativa","Sempre — temos um processo robusto de gestão de clientes em risco com alta taxa de recuperação"]},{text:"Minha marca envolve clientes no desenvolvimento de novos produtos, serviços ou melhorias — usando suas perspectivas como fonte de inovação.",options:["Discordo totalmente — nunca envolvemos clientes no desenvolvimento","Discordo — raramente pedimos opinião e quase nunca usamos nas decisões","Neutro — já fizemos isso pontualmente, mas não é uma prática estruturada","Concordo — temos práticas regulares de co-criação que geram inovações reais","Concordo totalmente — nossos clientes são parceiros de evolução — a co-criação é parte da nossa cultura"]},{text:"Você já presenciou clientes defendendo ativamente sua marca em situações de crítica ou ataque — sem que você pedisse ou incentivasse?",options:["Nunca — clientes não se engajam na defesa da marca","Raramente — aconteceu uma ou duas vezes de forma isolada","Às vezes — há alguns clientes que defendem, mas não é comum","Com frequência — temos clientes que defendem a marca de forma espontânea e consistente","Sempre — temos verdadeiros advogados da marca que a defendem com convicção e entusiasmo"]},{text:"Você trata de forma diferenciada seus clientes mais valiosos — com benefícios, acesso ou experiências exclusivas que reconhecem e recompensam a lealdade?",options:["Não — todos os clientes recebem o mesmo tratamento independentemente do valor","Raramente — já fizemos algo pontual, mas sem estratégia ou consistência","Às vezes — há alguma diferenciação, mas ainda muito informal e inconsistente","Sim — temos práticas estruturadas de reconhecimento e recompensa dos melhores clientes","Sim, de forma sofisticada — temos um programa robusto que aprofunda o relacionamento com clientes de alto valor"]},{text:"A experiência digital que minha marca oferece — site, redes sociais, atendimento online — é fluida, consistente e à altura da promessa da marca.",options:["Discordo totalmente — a experiência digital é precária e não representa bem a marca","Discordo — há muitas fricções e inconsistências na experiência digital","Neutro — a experiência digital é adequada, mas sem nada que surpreenda ou diferencie","Concordo — a experiência digital é fluida e consistente com a identidade da marca","Concordo totalmente — a experiência digital é um diferencial — fluida, memorável e alinhada com a promessa da marca"]},{text:"Minha marca gera um vínculo emocional real com os clientes — eles sentem algo além de satisfação funcional ao interagir com ela.",options:["Discordo totalmente — o relacionamento é puramente transacional e funcional","Discordo — há pouco envolvimento emocional na relação com a marca","Neutro — existe algum vínculo emocional em alguns clientes, mas não é predominante","Concordo — a marca gera vínculo emocional claro na maioria dos clientes","Concordo totalmente — a marca tem um papel significativo na vida dos clientes — vai muito além da função que desempenha"]},{text:"Tenho clientes que ativamente abrem portas, fazem apresentações e criam oportunidades de negócio para minha marca — não apenas indicam, mas pavimentam o caminho.",options:["Discordo totalmente — clientes não têm esse papel ativo no crescimento da marca","Discordo — já aconteceu esporadicamente, mas não é uma realidade consistente","Neutro — tenho alguns clientes assim, mas ainda de forma muito pontual","Concordo — tenho um grupo relevante de clientes que são embaixadores ativos da marca","Concordo totalmente — meus melhores clientes são parceiros estratégicos de crescimento — abrem mercados que eu sozinho não abriria"]}] } },
+  { id:6, name:"Pessoas, Cultura e Clima Organizacional", desc:"A capacidade da marca de atrair, desenvolver e reter pessoas — e construir uma cultura que a sustente.", questions:{ essential:[{text:"Quando você abre uma vaga na sua empresa, como descreve o perfil e a quantidade de candidatos que se interessam?",options:["Pouquíssimos candidatos e de perfil aquém do necessário — a marca não atrai talentos","Alguns candidatos, mas raramente com o perfil que buscamos","Quantidade razoável, mas a qualidade ainda deixa a desejar com frequência","Boa quantidade de candidatos qualificados — a marca já atrai bons profissionais","Muitos candidatos excelentes — os melhores do mercado querem trabalhar na nossa marca"]},{text:"Como você avalia a retenção dos seus melhores profissionais ao longo do tempo?",options:["Muito baixa — perdemos talentos com frequência e isso compromete a operação","Baixa — há rotatividade relevante, especialmente entre os melhores","Moderada — retemos alguns, mas perdemos bons profissionais com mais frequência do que gostaríamos","Alta — nossos melhores profissionais ficam e crescem conosco","Muito alta — temos uma equipe estável e comprometida que não quer ir embora"]},{text:"Como a rotatividade de pessoas impacta a qualidade da entrega e a consistência da marca para o cliente?",options:["Impacto devastador — o turnover compromete diretamente a experiência do cliente","Impacto relevante — cada saída gera um período de queda na qualidade","Impacto moderado — sentimos, mas conseguimos absorver sem grandes crises","Impacto pequeno — temos processos que minimizam os efeitos da rotatividade","Impacto irrelevante — a cultura e os processos são fortes o suficiente para absorver qualquer mudança"]},{text:"Minha equipe conhece, acredita e se engaja com o propósito e os valores da marca — não apenas como discurso, mas como orientação real do trabalho diário.",options:["Discordo totalmente — a equipe trabalha sem clareza ou conexão com o propósito","Discordo — alguns conhecem, mas poucos realmente acreditam ou se orientam por isso","Neutro — há consciência do propósito, mas ainda superficial e pouco presente no dia a dia","Concordo — a equipe tem clareza e o propósito orienta decisões e comportamentos","Concordo totalmente — o propósito é vivo dentro da equipe — orienta, motiva e une as pessoas"]},{text:"Como você descreveria o clima organizacional do seu negócio hoje?",options:["Muito ruim — há tensão, conflitos frequentes e desmotivação generalizada","Ruim — o ambiente é pesado, com pouco engajamento e muitas insatisfações","Neutro — as pessoas trabalham, mas sem entusiasmo ou senso de propósito claro","Bom — o ambiente é positivo, colaborativo e as pessoas se sentem valorizadas","Excelente — o clima é energizante, as pessoas são apaixonadas pelo que fazem e pela marca"]},{text:"O que minha marca promete externamente é de fato vivido internamente — os valores que comunicamos ao mercado são os mesmos que orientam o comportamento da equipe.",options:["Discordo totalmente — há uma grande contradição entre o que prometemos e como funcionamos internamente","Discordo — existe um gap relevante entre a marca que comunicamos e a cultura que vivemos","Neutro — há algum alinhamento, mas com contradições que ainda precisam ser resolvidas","Concordo — existe consistência entre a marca externa e a cultura interna na maioria dos aspectos","Concordo totalmente — nossa cultura interna é a expressão mais autêntica da nossa marca"]},{text:"Como sua empresa trata o desenvolvimento profissional e o crescimento das pessoas que fazem parte da equipe?",options:["Não há investimento em desenvolvimento — as pessoas crescem por conta própria ou não crescem","Muito pontual — alguma iniciativa isolada, mas sem estratégia ou consistência","Moderado — há algumas iniciativas, mas ainda aquém do que a equipe precisa e merece","Consistente — investimos regularmente no desenvolvimento das pessoas e isso gera resultado","É uma prioridade estratégica — desenvolvimento de pessoas é um pilar da nossa cultura e da nossa marca"]},{text:"Com que frequência você percebe que as pessoas da sua equipe falam da empresa com orgulho fora do ambiente de trabalho?",options:["Nunca — não há orgulho ou identificação com a marca externamente","Raramente — alguns fazem isso, mas não é comum nem espontâneo","Às vezes — há orgulho em alguns, mas não é generalizado","Com frequência — a maioria da equipe fala bem da marca de forma espontânea","Sempre — as pessoas são embaixadoras genuínas da marca — o orgulho é evidente e contagiante"]},{text:"A liderança da empresa — eu incluído — é um exemplo vivo dos valores e da cultura que queremos construir.",options:["Discordo totalmente — há uma contradição clara entre o que pedimos e o que praticamos como liderança","Discordo — a liderança ainda tem comportamentos que contradizem a cultura desejada","Neutro — em alguns aspectos somos exemplo, em outros ainda há inconsistências relevantes","Concordo — a liderança é consistente com os valores e serve de referência para a equipe","Concordo totalmente — a liderança é o exemplo mais vivo da cultura — o que pregamos é o que praticamos"]},{text:"Se sua empresa precisasse dobrar de tamanho nos próximos 12 meses, sua cultura e seus processos de pessoas seriam capazes de sustentar esse crescimento sem perder a essência da marca?",options:["Não — o crescimento quebraria a cultura e comprometeria a marca seriamente","Provavelmente não — há muita dependência de pessoas-chave e pouca estrutura para escalar","Talvez — temos alguma estrutura, mas ainda frágil para um crescimento acelerado","Provavelmente sim — temos cultura e processos que sustentariam o crescimento com ajustes pontuais","Sim, com confiança — nossa cultura e nossos processos são robustos o suficiente para escalar sem perder a essência"]}], deep:[{text:"Como é o processo de integração de novos colaboradores à cultura e à marca da empresa?",options:["Não temos processo — novos colaboradores aprendem sozinhos ao longo do tempo","Muito básico — apresentamos o operacional, mas pouco sobre cultura e marca","Moderado — há uma integração, mas ainda superficial em termos de cultura e propósito","Estruturado — temos um onboarding que transmite cultura, valores e identidade da marca","Robusto e intencional — o onboarding é uma experiência de imersão na cultura que gera identificação e engajamento desde o primeiro dia"]},{text:"Minha empresa tem uma cultura genuinamente inclusiva — que valoriza diferentes perspectivas, origens e experiências como fonte de inovação.",options:["Discordo totalmente — não há nenhuma política ou cultura de diversidade e inclusão","Discordo — o tema é reconhecido, mas ainda não se traduz em práticas reais","Neutro — há iniciativas pontuais, mas ainda longe de uma cultura genuinamente inclusiva","Concordo — temos uma cultura inclusiva real que se reflete na composição e no ambiente da equipe","Concordo totalmente — diversidade e inclusão são valores vivos que fortalecem nossa cultura e nossa marca"]},{text:"Como você avalia a qualidade da comunicação interna na sua empresa?",options:["Muito ruim — há muita desinformação, ruído e falta de transparência","Ruim — a comunicação é falha e gera desalinhamento frequente","Moderada — funciona no básico, mas com lacunas relevantes que geram confusão","Boa — a comunicação é clara e a equipe está bem alinhada na maioria das situações","Excelente — a comunicação interna é um ativo — transparente, consistente e alinhadora"]},{text:"Minha empresa tem práticas genuínas de reconhecimento e valorização das pessoas — que vão além da remuneração e tocam no senso de propósito e pertencimento.",options:["Discordo totalmente — não há cultura de reconhecimento estruturada","Discordo — o reconhecimento é raro e quando acontece é apenas financeiro","Neutro — há algum reconhecimento, mas ainda muito pontual e pouco significativo","Concordo — temos práticas regulares de reconhecimento que geram engajamento real","Concordo totalmente — reconhecimento e valorização são pilares da nossa cultura e um diferencial como marca empregadora"]},{text:"Como você descreveria o nível de autonomia e protagonismo que sua equipe tem para tomar decisões e propor melhorias?",options:["Muito baixo — tudo passa pela aprovação da liderança, a equipe não tem autonomia real","Baixo — há pouca iniciativa e as pessoas esperam sempre ser direcionadas","Moderado — existe alguma autonomia, mas ainda muito centralizado na liderança","Alto — a equipe tem autonomia real e propõe melhorias de forma consistente","Muito alto — as pessoas são protagonistas — tomam decisões, inovam e se sentem donas da marca"]},{text:"Como os conflitos internos são gerenciados na sua empresa?",options:["Muito mal — conflitos se acumulam, não são resolvidos e envenenam o ambiente","Mal — são resolvidos de forma reativa e muitas vezes deixam resíduos negativos","De forma adequada — resolvemos, mas sem um processo claro ou cultura de abertura","Bem — temos maturidade para lidar com conflitos de forma construtiva","Muito bem — conflitos são vistos como oportunidade de crescimento e são resolvidos com maturidade e abertura"]},{text:"Minha empresa é reconhecida no mercado como um bom lugar para trabalhar.",options:["Discordo totalmente — não temos reputação como marca empregadora","Discordo — nossa reputação como empregador é fraca ou desconhecida","Neutro — somos razoavelmente conhecidos, mas sem destaque como marca empregadora","Concordo — temos uma boa reputação como empregador no nosso mercado","Concordo totalmente — somos reconhecidos como referência em cultura e ambiente — profissionais nos buscam ativamente"]},{text:"Seus colaboradores atuais e ex-colaboradores falam bem da empresa no mercado de forma espontânea?",options:["Não — já ouvi comentários negativos de ex-colaboradores que prejudicaram a marca","Raramente — a maioria não fala nem bem nem mal","Às vezes — alguns falam bem, outros são indiferentes","Com frequência — a maioria dos colaboradores e ex-colaboradores fala bem da marca","Sempre — nossos colaboradores e ex-colaboradores são embaixadores genuínos — falam com orgulho e entusiasmo"]},{text:"Minha empresa tem pessoas desenvolvidas o suficiente para assumir responsabilidades maiores — garantindo que a marca não dependa exclusivamente de mim ou de uma pessoa-chave.",options:["Discordo totalmente — a empresa trava sem minha presença ou de uma pessoa específica","Discordo — há muita dependência de pessoas-chave sem substitutos preparados","Neutro — há algum desenvolvimento, mas ainda insuficiente para garantir continuidade","Concordo — temos pessoas desenvolvidas que garantem a continuidade em situações de ausência","Concordo totalmente — temos um banco de talentos preparado que garante a perenidade da marca independente de qualquer pessoa"]},{text:"A cultura da minha empresa é um diferencial competitivo real — algo que atrai clientes, talentos e parceiros e que os concorrentes não conseguem replicar facilmente.",options:["Discordo totalmente — a cultura não é percebida como diferencial por ninguém","Discordo — há elementos culturais interessantes, mas sem impacto competitivo real","Neutro — começo a perceber o potencial da cultura como diferencial, mas ainda não se traduz em vantagem clara","Concordo — nossa cultura já é percebida como diferencial por clientes e talentos","Concordo totalmente — nossa cultura é um ativo inimitável — é o que nos torna únicos e impossíveis de copiar"]}] } },
+  { id:7, name:"Visão e Maturidade Empreendedora", desc:"O nível de clareza, maturidade e protagonismo do empreendedor como principal arquiteto da marca.", questions:{ essential:[{text:"Qual das situações abaixo melhor descreve seu papel atual dentro do negócio?",options:["Estou no operacional — faço tudo, apago incêndios e mal tenho tempo para pensar estrategicamente","Divido meu tempo entre operacional e estratégico, mas o operacional ainda domina","Estou saindo gradualmente do operacional, mas ainda com muita dependência da minha presença","Atuo predominantemente de forma estratégica — a operação funciona sem minha presença constante","Sou o arquiteto da marca — atuo na visão, na cultura e nas decisões de longo prazo enquanto a operação se sustenta"]},{text:"Ao refletir honestamente sobre as últimas grandes decisões que tomou no negócio, qual foi o principal motor dessas decisões?",options:["Impulso e emoção — decido mais pelo que sinto do que pelo que os dados ou a estratégia indicam","Mistura de estratégia e vaidade — algumas decisões foram mais para impressionar do que para construir","Majoritariamente estratégico, mas ainda com influência relevante do ego em algumas situações","Predominantemente estratégico — tomo decisões com base em visão e dados, controlando bem o ego","Totalmente estratégico — consigo separar o que é bom para a marca do que é bom para o meu ego"]},{text:"Quando o negócio começa a gerar mais dinheiro, qual é o seu comportamento predominante?",options:["Aumento imediatamente meu padrão de vida — carro, viagens, escritório, status","Gasto boa parte em conforto pessoal antes de pensar em reinvestimento","Divido entre consumo pessoal e reinvestimento, mas sem uma estratégia clara","Priorizo o reinvestimento na marca e no negócio, com retirada pessoal controlada","Tenho uma estratégia clara de alocação — reinvisto de forma intencional e retiro o que está planejado"]},{text:"Consigo identificar situações em que meu ego ou minha vaidade influenciaram negativamente decisões do negócio — e aprendi com isso.",options:["Discordo totalmente — não reconheço o ego como fator nas minhas decisões","Discordo — raramente consigo identificar isso e quando identifico, não mudo o comportamento","Neutro — já percebi algumas situações, mas ainda é difícil controlar no momento da decisão","Concordo — tenho consciência do ego nas minhas decisões e já desenvolvi mecanismos para controlá-lo","Concordo totalmente — o autoconhecimento é uma ferramenta de gestão — sei quando o ego está falando e consigo colocá-lo no lugar"]},{text:"Como você descreveria sua visão para a marca nos próximos 5 anos?",options:["Não tenho uma visão clara — vivo o dia a dia e o futuro é muito incerto para planejar","Tenho uma ideia vaga, mas sem clareza suficiente para orientar decisões concretas","Tenho uma visão em construção, mas ainda não está traduzida em estratégia clara","Tenho uma visão clara e ela orienta as principais decisões do negócio hoje","Tenho uma visão nítida, compartilhada com a equipe e sendo construída de forma deliberada e consistente"]},{text:"Como você investe no seu próprio desenvolvimento como empreendedor e líder de marca?",options:["Não invisto — aprendo na prática e não tenho tempo ou interesse em formação estruturada","Raramente — algum livro ou evento esporádico, mas sem consistência","Moderadamente — há investimento, mas ainda aquém do que minha posição exige","Consistentemente — tenho uma rotina de aprendizado que me mantém em evolução constante","É uma prioridade — invisto de forma intensa e estruturada no meu desenvolvimento porque sei que meu crescimento é o crescimento da marca"]},{text:"O que acontece com o negócio quando você se ausenta por 30 dias sem acesso ao dia a dia da operação?",options:["Para — nada funciona sem minha presença e supervisão constante","Entra em colapso parcial — surgem crises que só eu consigo resolver","Funciona com dificuldades — a equipe se vira, mas com muita perda de qualidade","Funciona bem — a operação se sustenta com pequenos ajustes à distância","Funciona perfeitamente — a marca opera com autonomia total independente da minha presença"]},{text:"Como você reage quando alguém confronta suas ideias ou aponta falhas na sua gestão?",options:["Com defensividade — tenho dificuldade real de ouvir críticas sem reagir negativamente","Com resistência inicial — ouço, mas raramente mudo de posição com base no feedback","Com abertura moderada — consigo ouvir, mas o ego ainda interfere em alguns momentos","Com abertura genuína — busco ativamente feedback e uso isso para evoluir","Com gratidão — vejo o confronto como presente e busco ativamente pessoas que me desafiem"]},{text:"Consigo separar claramente minha identidade pessoal da identidade da marca — tomando decisões pelo bem da marca mesmo quando isso contraria meu conforto ou vaidade pessoal.",options:["Discordo totalmente — eu e a marca somos a mesma coisa, não consigo separar","Discordo — há muita confusão entre o que é bom para mim e o que é bom para a marca","Neutro — consigo separar em alguns momentos, mas ainda com muita sobreposição","Concordo — tenho clareza dessa separação e isso orienta minhas decisões com consistência","Concordo totalmente — a marca tem vida própria e eu sirvo a ela — não o contrário"]},{text:"O que você prega para sua equipe e para o mercado é de fato o que você pratica no dia a dia como líder?",options:["Há uma contradição clara — peço uma coisa e faço outra","Há inconsistências relevantes que a equipe já percebeu e que minam minha credibilidade","Em geral sou consistente, mas com alguns gaps que ainda preciso trabalhar","Sou consistente na maioria das situações — minha equipe me vê como exemplo","Totalmente consistente — sou o primeiro a viver o que prego e isso dá autoridade moral à minha liderança"]}], deep:[{text:"Nos últimos 12 meses, como você avalia a proporção entre o que gastou para elevar seu padrão de vida pessoal e o que investiu para fortalecer a marca e o negócio?",options:["Gastei muito mais no lifestyle — o negócio financiou um padrão de vida desproporcional ao momento da marca","Gastei mais no lifestyle do que no negócio — há um desequilíbrio relevante","Ficou equilibrado, mas sem uma estratégia clara por trás dessa alocação","Investi mais no negócio — o lifestyle cresceu, mas de forma proporcional e planejada","Investi de forma intencional e estratégica — o lifestyle é uma consequência planejada, não uma prioridade"]},{text:"Já recebi sinais de que minha presença excessiva ou meu controle centralizador estão limitando o crescimento da marca.",options:["Concordo totalmente — sou o maior obstáculo ao crescimento da minha própria marca e já sei disso","Concordo — já ficou claro que minha centralização é um gargalo relevante para a marca","Neutro — já recebi alguns sinais, mas ainda não tenho clareza se isso é um problema real","Discordo — há alguma centralização, mas não a ponto de limitar o crescimento","Discordo totalmente — tenho um estilo de liderança que libera e não limita"]},{text:"Como você lida com suas fraquezas como empreendedor — áreas em que você não é bom e que são críticas para o negócio?",options:["Ignoro ou nego — tenho dificuldade de reconhecer minhas fraquezas","Reconheço, mas não faço nada estruturado para compensar","Reconheço e já tomei algumas ações, mas ainda de forma insuficiente","Reconheço e compenso ativamente — contrato, parceiro ou delego para cobrir minhas fraquezas","Tenho clareza profunda das minhas fraquezas e construí uma equipe e uma estrutura que as complementa perfeitamente"]},{text:"Como você toma decisões importantes quando está sob pressão financeira, emocional ou competitiva?",options:["Muito mal — pressão me paralisa ou me faz tomar decisões impulsivas e prejudiciais","Mal — já tomei decisões ruins sob pressão que custaram caro para a marca","Razoavelmente — consigo decidir, mas a qualidade das decisões cai sob pressão","Bem — tenho mecanismos que me ajudam a manter a clareza mesmo sob pressão","Muito bem — pressão não compromete minha clareza — aprendi a usar a adversidade como catalisador"]},{text:"Você tem ao seu redor pessoas que te desafiam, te confrontam e te ajudam a enxergar pontos cegos — mentores, conselheiros ou pares de alto nível?",options:["Não — tomo decisões sozinho, sem uma rede de suporte qualificada","Raramente — converso com algumas pessoas, mas de forma muito pontual e sem profundidade","Tenho algumas referências, mas ainda sem uma rede estruturada de suporte estratégico","Sim — tenho mentores e conselheiros que contribuem de forma relevante para minha evolução","Sim, de forma robusta — tenho uma rede de alto nível que me desafia constantemente e acelera meu crescimento como líder de marca"]},{text:"Tenho clareza sobre onde e como gero mais valor para a marca — e concentro minha energia nessas atividades, delegando o restante.",options:["Discordo totalmente — faço de tudo sem clareza sobre onde gero mais valor","Discordo — tenho alguma ideia, mas ainda me perco em atividades de baixo valor","Neutro — tenho clareza parcial, mas ainda não consigo concentrar energia de forma estratégica","Concordo — sei onde gero mais valor e já estruturei a delegação do restante","Concordo totalmente — opero exclusivamente nas atividades de maior valor estratégico para a marca"]},{text:"Como você avalia sua saúde mental e emocional como empreendedor hoje?",options:["Muito ruim — estou esgotado, sem energia e isso já está impactando o negócio","Ruim — há sinais claros de desgaste que comprometem minha capacidade de liderança","Moderada — funciono, mas sem a energia e clareza que minha posição exige","Boa — tenho equilíbrio razoável e energia para liderar com qualidade","Excelente — cuido ativamente da minha saúde mental e emocional e isso se reflete na qualidade da minha liderança"]},{text:"Meu propósito de vida pessoal está alinhado com o propósito da marca que estou construindo — o que me faz levantar todo dia vai além do dinheiro e da sobrevivência do negócio.",options:["Discordo totalmente — o negócio é apenas um meio de ganhar dinheiro, sem conexão com propósito pessoal","Discordo — há alguma conexão, mas ainda fraca e pouco presente nas decisões","Neutro — começo a perceber essa conexão, mas ainda não está clara e integrada","Concordo — meu propósito pessoal e o da marca estão conectados e isso me move","Concordo totalmente — sou a expressão viva do propósito da marca — não consigo separar o que sou do que construo"]},{text:"Como você reage quando o negócio atravessa um período de grande sucesso — crescimento acelerado, reconhecimento e resultados acima do esperado?",options:["Fico eufórico e tomo decisões expansivas sem análise — o sucesso me descontrola","Me empolgo e já comecei a gastar ou expandir antes de consolidar o que foi conquistado","Fico satisfeito, mas ainda com dificuldade de manter a disciplina e o foco no período de euforia","Celebro com equilíbrio e uso o sucesso como combustível para o próximo ciclo com disciplina","Trato o sucesso com sobriedade — celebro, aprendo e imediatamente foco no que vem a seguir sem perder o chão"]},{text:"Qual das situações abaixo melhor descreve sua visão sobre o legado que quer deixar através da sua marca?",options:["Não penso em legado — o foco é sobreviver e crescer no curto prazo","Já pensei nisso, mas ainda é muito abstrato e não orienta minhas decisões","Tenho uma noção de legado, mas ainda em construção e pouco presente na estratégia","Tenho clareza do legado que quero deixar e isso já orienta decisões importantes","O legado é o norte de tudo — cada decisão da marca é filtrada pela pergunta: isso está construindo algo que vai durar e importar?"]}] } }
+];
+
+// ══════════════════════════════════════
+// ESTADO
+// ══════════════════════════════════════
+let selectedVersion = null;
+let currentBlock = 0;
+let answers = {};
+let totalQuestions = 0;
+let userData = {};
+
+// ══════════════════════════════════════
+// CONTROLE
+// ══════════════════════════════════════
+function selectVersion(v) {
+  selectedVersion = v;
+  document.getElementById('card-essential').classList.toggle('selected', v==='essential');
+  document.getElementById('card-deep').classList.toggle('selected', v==='deep');
+  document.getElementById('btn-start').disabled = false;
+}
+
+function goToForm() {
+  if(!selectedVersion) return;
+  document.getElementById('screen-start').style.display='none';
+  document.getElementById('screen-form').style.display='flex';
+  document.getElementById('form-badge').textContent=selectedVersion==='essential'?'Diagnóstico Sintético':'Diagnóstico Analítico';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function backToStart() {
+  document.getElementById('screen-form').style.display='none';
+  document.getElementById('screen-start').style.display='flex';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function checkForm() {
+  const name=document.getElementById('field-name').value.trim();
+  const company=document.getElementById('field-company').value.trim();
+  const email=document.getElementById('field-email').value.trim();
+  const phone=document.getElementById('field-phone').value.trim();
+  const valid=name&&company&&email&&phone&&email.includes('@');
+  document.getElementById('btn-form-submit').disabled=!valid;
+}
+
+function formatPhone(input) {
+  let v=input.value.replace(/\D/g,'');
+  if(v.length<=2) v=v;
+  else if(v.length<=7) v=`(${v.slice(0,2)}) ${v.slice(2)}`;
+  else if(v.length<=11) v=`(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+  else v=`(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7,11)}`;
+  input.value=v;
+}
+
+function startQuiz() {
+  // Validar formulário
+  const name=document.getElementById('field-name').value.trim();
+  const company=document.getElementById('field-company').value.trim();
+  const email=document.getElementById('field-email').value.trim();
+  const phone=document.getElementById('field-phone').value.trim();
+  if(!name||!company||!email||!phone) return;
+
+  // Guardar dados
+  userData={name,company,email,phone};
+
+  // Atualizar metainfo do relatório
+  document.getElementById('report-company-name').textContent=company;
+
+  totalQuestions = BLOCKS.length * (selectedVersion==='essential'?10:20);
+  saveProgress();
+  document.getElementById('screen-form').style.display='none';
+  document.getElementById('screen-quiz').style.display='block';
+  currentBlock=0; renderBlock(0);
+}
+
+// ══════════════════════════════════════
+// LOCALSTORAGE — SALVAR E RECUPERAR
+// ══════════════════════════════════════
+const STORAGE_KEY = 'ciclo_marca_progress';
+
+function saveProgress() {
+  const state = { answers, currentBlock, selectedVersion, userData, totalQuestions };
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
+}
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const state = JSON.parse(raw);
+    if (!state.selectedVersion || !state.userData) return false;
+
+    answers = state.answers || {};
+    currentBlock = state.currentBlock || 0;
+    selectedVersion = state.selectedVersion;
+    userData = state.userData;
+    totalQuestions = state.totalQuestions || BLOCKS.length * (selectedVersion==='essential'?10:20);
+    return true;
+  } catch(e) { return false; }
+}
+
+function clearProgress() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+}
+
+// Verificar progresso salvo ao carregar a página
+window.addEventListener('load', () => {
+  if (loadProgress()) {
+    // Mostrar banner de retomada
+    showResumeBanner();
+  }
+});
+
+function showResumeBanner() {
+  const firstName = userData.name ? userData.name.split(' ')[0] : '';
+  const versionName = selectedVersion === 'essential' ? 'Diagnóstico Sintético' : 'Diagnóstico Analítico';
+  const totalAnswered = Object.keys(answers).length;
+  const totalQ = totalQuestions;
+  const pct = Math.round((totalAnswered / totalQ) * 100);
+
+  const banner = document.createElement('div');
+  banner.id = 'resume-banner';
+  banner.innerHTML = `
+    <div class="resume-inner">
+      <div class="resume-icon">↩</div>
+      <div class="resume-content">
+        <div class="resume-title">Bem-vindo de volta${firstName ? ', ' + firstName : ''}!</div>
+        <div class="resume-desc">Você tem um <strong>${versionName}</strong> em andamento — ${pct}% concluído. Deseja continuar de onde parou?</div>
+      </div>
+      <div class="resume-actions">
+        <button class="resume-btn-yes" onclick="resumeQuiz()">Continuar →</button>
+        <button class="resume-btn-no" onclick="dismissResume()">Começar do zero</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(banner);
+  setTimeout(() => banner.classList.add('visible'), 100);
+}
+
+function resumeQuiz() {
+  document.getElementById('resume-banner').remove();
+  document.getElementById('report-company-name').textContent = userData.company || '';
+  document.getElementById('screen-start').style.display = 'none';
+  document.getElementById('screen-quiz').style.display = 'block';
+  renderBlock(currentBlock);
+}
+
+function dismissResume() {
+  clearProgress();
+  answers = {}; currentBlock = 0; selectedVersion = null; userData = {}; totalQuestions = 0;
+  document.getElementById('resume-banner').remove();
+  // Reset tela inicial
+  document.getElementById('card-essential').classList.remove('selected');
+  document.getElementById('card-deep').classList.remove('selected');
+  document.getElementById('btn-start').disabled = true;
+}
+
+function getQuestions(bi) {
+  const b=BLOCKS[bi];
+  return selectedVersion==='essential' ? b.questions.essential : [...b.questions.essential,...b.questions.deep];
+}
+
+function renderBlock(bi) {
+  const b=BLOCKS[bi]; const qs=getQuestions(bi);
+  const answered=qs.filter((_,qi)=>answers[`${bi}_${qi}`]!==undefined).length;
+  const totalAns=Object.keys(answers).length;
+  const pct=Math.round((totalAns/totalQuestions)*100);
+  document.getElementById('progress-label').textContent=`Bloco ${bi+1} de 7`;
+  document.getElementById('progress-pct').textContent=`${pct}%`;
+  document.getElementById('progress-fill').style.width=`${pct}%`;
+
+  let html=`<div class="block-header">
+    <div class="block-number">Bloco ${bi+1} — ${b.name}</div>
+    <div class="block-title">${b.name}</div>
+    <div class="block-desc">${b.desc}</div>
+    ${b.note?`<div class="block-note"><strong>⚠️ Nota importante:</strong> As respostas aqui refletem a <em>sua percepção</em> sobre a experiência dos seus clientes. Na consultoria, realizamos entrevistas diretas com seus clientes e aplicamos a técnica de <strong>cliente oculto</strong> para capturar a experiência real — sem filtros.</div>`:''}
+  </div>`;
+
+  qs.forEach((q,qi)=>{
+    const key=`${bi}_${qi}`; const sel=answers[key]; const isAns=sel!==undefined;
+    html+=`<div class="question-card ${isAns?'answered':''}" id="qcard_${qi}">
+      <div class="question-num">Pergunta ${qi+1} de ${qs.length}</div>
+      <div class="question-text">${q.text}</div>
+      <div class="options">`;
+    q.options.forEach((opt,oi)=>{
+      const score=oi+1; const isSel=sel===score;
+      html+=`<div class="option ${isSel?'selected':''}" onclick="selectAnswer(${bi},${qi},${score})">
+        <div class="option-dot"></div>
+        <div class="option-score">${score}</div>
+        <div class="option-text">${opt}</div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  });
+
+  html+=`<div class="review-alert">
+    <div class="review-alert-icon">↩</div>
+    <div class="review-alert-text">
+      <strong>Revise suas respostas antes de continuar.</strong>
+      Cada resposta impacta diretamente o resultado do seu diagnóstico. Responda com honestidade — o valor está na precisão.
+    </div>
+  </div>`;
+
+  html+=`<div class="quiz-nav">
+    ${bi>0?`<button class="btn-secondary" onclick="prevBlock()">← Anterior</button>`:`<div></div>`}
+    <div class="block-progress"><span>${answered}</span>/${qs.length} respondidas</div>
+    <button class="btn-primary" onclick="nextBlock()">${bi<BLOCKS.length-1?'Próximo bloco →':'Ver Relatório'}</button>
+  </div>`;
+
+  document.getElementById('quiz-body').innerHTML=html;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function selectAnswer(bi,qi,score) {
+  answers[`${bi}_${qi}`]=score;
+  saveProgress();
+  renderBlock(bi);
+}
+
+function nextBlock() {
+  const qs=getQuestions(currentBlock);
+  if(!qs.every((_,qi)=>answers[`${currentBlock}_${qi}`]!==undefined)){
+    alert('Por favor, responda todas as perguntas deste bloco antes de continuar.'); return;
+  }
+  if(currentBlock<BLOCKS.length-1){
+    currentBlock++;
+    saveProgress();
+    renderBlock(currentBlock);
+  } else generateReport();
+}
+
+function prevBlock() { if(currentBlock>0){currentBlock--;renderBlock(currentBlock);} }
+
+// ══════════════════════════════════════
+// PONTUAÇÃO
+// ══════════════════════════════════════
+function calcBlock(bi) {
+  const qs=getQuestions(bi); const max=qs.length*5;
+  let score=0; qs.forEach((_,qi)=>{ score+=(answers[`${bi}_${qi}`]||0); });
+  return {score,max,pct:Math.round((score/max)*100)};
+}
+
+function getStatus(pct) {
+  if(pct<=25) return {label:'Crítico',cls:'s-critical',color:'#c0392b'};
+  if(pct<=50) return {label:'Vulnerável',cls:'s-vulnerable',color:'#d4680a'};
+  if(pct<=75) return {label:'Estável',cls:'s-stable',color:'#c49a00'};
+  return {label:'Saudável',cls:'s-healthy',color:'#3a8f4a'};
+}
+
+function getPhase(pct) {
+  if(pct<=25) return {name:'Introdução',color:'#7c6aab'};
+  if(pct<=50) return {name:'Crescimento',color:'#2a7abf'};
+  if(pct<=75) return {name:'Platô',color:'#c49a00'};
+  return {name:'Declínio',color:'#c0392b'};
+}
+
+function getPhaseDesc(name) {
+  const m={'Introdução':'Sua marca ainda está construindo sua base. O mercado ainda a conhece pouco, os processos estão sendo formados e há muito espaço — e urgência — para trabalhar os alicerces que sustentarão o crescimento.','Crescimento':'Sua marca está ganhando tração. O reconhecimento cresce, os resultados melhoram e a máquina começa a funcionar. O desafio agora é crescer sem perder a essência e construir com consistência.','Platô':'Sua marca está estável — mas estagnada. Os resultados sustentam o negócio, porém o crescimento parou. Esta é a fase mais traiçoeira: tudo parece bem, mas a marca está perdendo espaço e relevância de forma silenciosa. Sem intervenção estratégica, o próximo movimento é o declínio.','Declínio':'Sua marca está perdendo força, relevância e mercado. Os sinais são claros — nos números, nas pessoas, na percepção do mercado. Este é o momento de uma intervenção estratégica profunda antes que a reversão se torne mais difícil.'};
+  return m[name]||'';
+}
+
+function getInsight(bi,pct) {
+  const rows=[[
+    "Sua marca ainda não tem presença significativa no mercado. O reconhecimento é baixo e a reputação está sendo formada. É fundamental trabalhar visibilidade e consistência de imagem.",
+    "Há reconhecimento inicial, mas a percepção é difusa. O mercado ainda não tem clareza sobre o que sua marca representa. Falta consistência e diferenciação percebida.",
+    "Sua marca tem presença, mas não impressiona. É conhecida, porém não é referência. A reputação existe, mas é genérica — não gera vantagem competitiva real.",
+    "Sua marca tem boa percepção de mercado. O reconhecimento é sólido e a reputação está sendo construída de forma consistente. Foque em ampliar e aprofundar essa posição."
+  ],[
+    "Sua marca atua de forma reativa no mercado competitivo. Há pouco conhecimento sobre concorrentes e tendências, e o diferencial ainda não está claro.",
+    "Existe algum monitoramento competitivo, mas sem consistência. O diferencial existe, mas ainda não é forte o suficiente para criar vantagem sustentável.",
+    "Você conhece o mercado e tem um diferencial definido, mas ainda há oportunidades de aprofundar a inteligência competitiva e construir barreiras mais sólidas.",
+    "Sua marca tem inteligência competitiva sólida. Monitora o mercado, tem diferencial claro e barreiras competitivas relevantes que dificultam a cópia."
+  ],[
+    "Os indicadores financeiros e comerciais revelam fragilidade. Descontos frequentes, margens pressionadas e faturamento instável são sinais de que a marca não está gerando valor percebido suficiente.",
+    "A performance comercial está abaixo do potencial. Há dependência de novos clientes, ciclo de vendas longo e dificuldade em sustentar preços. A marca ainda não trabalha pelo negócio.",
+    "Os resultados são razoáveis, mas com muito espaço para evolução. A marca começa a facilitar as vendas, mas ainda há pressão de preço e baixa recorrência.",
+    "A performance comercial e financeira é sólida. A marca gera valor percebido real — clientes pagam sem questionar, a recorrência cresce e as margens são saudáveis."
+  ],[
+    "A identidade da marca ainda é frágil e inconsistente. Propósito, posicionamento e identidade visual ainda estão em formação. O mercado não tem clareza sobre o que a marca representa.",
+    "Existem elementos de identidade, mas sem a coesão necessária. O posicionamento é vago e a comunicação ainda é inconsistente entre os diferentes pontos de contato.",
+    "A identidade existe e tem elementos sólidos, mas ainda há lacunas. O posicionamento poderia ser mais preciso e a consistência da comunicação pode melhorar.",
+    "A marca tem identidade forte, posicionamento claro e comunicação consistente. O empreendedor age como guardião ativo da marca e isso se reflete em tudo que ela entrega."
+  ],[
+    "O relacionamento com o cliente ainda é transacional e superficial. Baixa retenção, poucas indicações e ausência de processos de escuta revelam uma marca que ainda não construiu vínculos reais.",
+    "Existe relacionamento, mas sem profundidade. Clientes ficam, mas não se tornam promotores. A experiência cumpre o básico sem encantar ou fidelizar de verdade.",
+    "O relacionamento é bom, mas com oportunidades relevantes de evolução. Clientes ficam e indicam, mas ainda há inconsistências na experiência que limitam o encantamento.",
+    "Sua marca constrói relacionamentos sólidos e duradouros. Clientes ficam, indicam, defendem e crescem em valor ao longo do tempo. A experiência é um ativo real."
+  ],[
+    "A dimensão de pessoas e cultura revela fragilidade. Dificuldade em contratar, alto turnover e desalinhamento entre cultura interna e promessa externa são sinais críticos.",
+    "Existe uma cultura em formação, mas ainda fraca. A marca atrai algumas pessoas, mas retém com dificuldade. O propósito ainda não está internalizado pela equipe.",
+    "A cultura tem elementos positivos, mas ainda há inconsistências. O clima é razoável, a retenção é moderada, mas a cultura ainda não é um diferencial competitivo.",
+    "Sua empresa tem uma cultura forte e coerente com a marca. Atrai e retém talentos, o propósito é vivo internamente e a liderança é exemplo do que prega."
+  ],[
+    "O empreendedor ainda é o principal gargalo da marca. Opera no operacional, toma decisões movidas pelo ego e ainda confunde crescimento pessoal com crescimento da marca.",
+    "Há consciência da importância da visão estratégica, mas ainda há muita operação, algumas decisões guiadas pela vaidade e dificuldade em separar o pessoal do estratégico.",
+    "O empreendedor tem clareza crescente do seu papel, mas ainda oscila entre o estratégico e o operacional. Há evolução, mas com pontos cegos que precisam de atenção.",
+    "O empreendedor atua como arquiteto da marca. Tem visão clara, toma decisões estratégicas, investe no próprio desenvolvimento e coloca o bem da marca acima do ego pessoal."
+  ]];
+  const idx=pct<=25?0:pct<=50?1:pct<=75?2:3;
+  return rows[bi][idx];
+}
+
+// ══════════════════════════════════════
+// RELATÓRIO
+// ══════════════════════════════════════
+function generateReport() {
+  clearProgress();
+  document.getElementById('screen-quiz').style.display='none';
+  document.getElementById('screen-report').style.display='block';
+  document.getElementById('report-company-name').textContent=userData.company||'Diagnóstico de Ciclo de Marca';
+  document.getElementById('report-meta-info').textContent=`${selectedVersion==='essential'?'Diagnóstico Sintético · 70':'Diagnóstico Analítico · 140'} perguntas · ${new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}`;
+  window.scrollTo({top:0,behavior:'smooth'});
+
+  const bres=BLOCKS.map((b,i)=>({...b,...calcBlock(i)}));
+  const totScore=bres.reduce((s,b)=>s+b.score,0);
+  const totMax=bres.reduce((s,b)=>s+b.max,0);
+  const totPct=Math.round((totScore/totMax)*100);
+  const phase=getPhase(totPct);
+  const sorted=[...bres].sort((a,b)=>b.pct-a.pct);
+  const strengths=sorted.slice(0,3);
+  const vulns=sorted.slice(-3).reverse();
+
+  let html='';
+
+  // Saudação personalizada
+  const firstName=userData.name?userData.name.split(' ')[0]:'';
+  if(firstName){
+    html+=`<div style="margin-bottom:32px;padding:20px 24px;background:var(--green-light);border:1px solid var(--green);border-radius:14px;font-size:14px;color:var(--text-muted);line-height:1.6;font-weight:400">
+      Olá, <strong style="color:var(--black)">${firstName}!</strong> Seu diagnóstico foi concluído. Abaixo você encontra a análise completa da posição da <strong style="color:var(--black)">${userData.company||'sua marca'}</strong> no Ciclo de Marca.
+    </div>`;
+  }
+
+  // Fase
+  html+=`<div class="phase-card fade">
+    <div class="phase-eyebrow">Fase atual da sua marca</div>
+    <div class="phase-name">${phase.name}</div>
+    <div class="gauge-section">
+      <div class="gauge-wrap"><canvas id="gaugeChart"></canvas>
+        <div class="gauge-center"><div class="gauge-value">${totPct}%</div><div class="gauge-label">Pontuação</div></div>
+      </div>
+      <div class="phase-stats">
+        <div class="phase-stat"><div class="phase-stat-value">${totScore}</div><div class="phase-stat-label">Pontos obtidos<br>de ${totMax} possíveis</div></div>
+        <div class="phase-stat"><div class="phase-stat-value">${totalQuestions}</div><div class="phase-stat-label">Perguntas<br>respondidas</div></div>
+      </div>
+    </div>
+    <p class="phase-desc">${getPhaseDesc(phase.name)}</p>
+  </div>`;
+
+  // Alert platô
+  if(phase.name==='Platô') html+=`<div class="alert-strip fade-2"><strong>⚠️ Atenção ao Platô:</strong> Diferente do Declínio — que é visível e urgente — o Platô é traiçoeiro justamente porque parece confortável. O empreendedor acha que está bem porque não está caindo. Mas estabilidade sem crescimento, em mercados que se movem, é declínio em câmera lenta. Os dados do seu diagnóstico revelam onde está o freio invisível.</div>`;
+
+  // Radar
+  html+=`<div class="section fade-2">
+    <div class="section-title">Radar das 7 Dimensões</div>
+    <div class="section-sub">Visualização da saúde de cada dimensão da sua marca. Quanto maior a área, mais sólida a marca no conjunto.</div>
+    <div class="chart-wrap"><canvas id="radarChart"></canvas></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--critical)"></div>Crítico (0–25%)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--vulnerable)"></div>Vulnerável (26–50%)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--stable)"></div>Estável (51–75%)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--healthy)"></div>Saudável (76–100%)</div>
+    </div>
+  </div>`;
+
+  // Blocos
+  html+=`<div style="margin-bottom:8px"><span style="font-family:Montserrat;font-size:20px;font-weight:800;letter-spacing:-0.5px">Análise por Dimensão</span></div>
+  <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;font-weight:400">Pontuação detalhada e diagnóstico de cada uma das 7 dimensões</div>
+  <div class="blocks-grid fade-3">`;
+
+  bres.forEach((b,i)=>{
+    const st=getStatus(b.pct); const ins=getInsight(i,b.pct);
+    html+=`<div class="block-card ${st.cls}">
+      <div class="bc-top">
+        <div><div class="bc-num">Bloco 0${i+1}</div><div class="bc-name">${b.name}</div></div>
+        <div class="bc-pct">${b.pct}%</div>
+      </div>
+      <div class="bc-bar-wrap"><div class="bc-bar" style="width:${b.pct}%"></div></div>
+      <div class="bc-status"><div class="bc-status-dot"></div>${st.label}</div>
+      <div class="bc-insight">${ins}</div>
+    </div>`;
+  });
+  html+=`</div>`;
+
+  // Diagnóstico integrado
+  html+=`<div class="section fade-4">
+    <div class="section-title">Diagnóstico Integrado</div>
+    <div class="section-sub">Os padrões mais reveladores identificados no cruzamento das 7 dimensões</div>
+    <div class="diag-grid">
+      <div>
+        <div class="diag-col-label s">✦ Principais Forças</div>
+        ${strengths.map(b=>`<div class="diag-item"><div class="diag-dot s"></div><div><strong>${b.name} (${b.pct}%)</strong> — Esta é uma das dimensões mais sólidas da sua marca. Use como alavanca para puxar as demais.</div></div>`).join('')}
+      </div>
+      <div>
+        <div class="diag-col-label v">✦ Vulnerabilidades Críticas</div>
+        ${vulns.map(b=>`<div class="diag-item"><div class="diag-dot v"></div><div><strong>${b.name} (${b.pct}%)</strong> — Esta dimensão está puxando a marca para baixo. Exige atenção prioritária.</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="pattern-box">
+      <div class="pattern-title">⬡ Padrão identificado</div>
+      <div class="pattern-text">O diagnóstico revela um padrão claro no conjunto das 7 dimensões. <strong>Os blocos mais fortes precisam ser usados como alavanca</strong> para os mais vulneráveis — porque a marca só avança no ciclo quando o conjunto evolui, não quando uma dimensão cresce isoladamente. O próximo passo é um plano de ação integrado que conecte as forças às vulnerabilidades.</div>
+    </div>
+  </div>`;
+
+  // Próximos passos
+  html+=`<div class="section fade-4">
+    <div class="section-title">O que precisa acontecer para avançar no ciclo</div>
+    <div class="section-sub">As três alavancas prioritárias identificadas pelo diagnóstico</div>
+    <div class="steps-grid">
+      <div class="step-card"><div class="step-num">01</div><div class="step-title">Fortalecer as dimensões vulneráveis</div><div class="step-desc">Os blocos com menor pontuação são o freio invisível da marca. Trabalhar esses pontos com estratégias específicas é o caminho mais direto para o avanço no ciclo.</div></div>
+      <div class="step-card"><div class="step-num">02</div><div class="step-title">Amplificar as dimensões sólidas</div><div class="step-desc">As dimensões mais fortes da sua marca são ativos que ainda podem ser mais explorados. Usá-las estrategicamente para compensar as fraquezas acelera o processo.</div></div>
+      <div class="step-card"><div class="step-num">03</div><div class="step-title">Criar consistência no conjunto</div><div class="step-desc">Marcas que avançam no ciclo não são perfeitas em uma dimensão — são consistentes em todas. O objetivo é elevar o piso, não apenas o teto.</div></div>
+    </div>
+  </div>`;
+
+  // CTA — diferente para Sintético vs Analítico
+  if(selectedVersion==='essential'){
+    html+=`<div class="cta-section fade-4">
+      <div class="cta-eyebrow">Você fez o Diagnóstico Sintético</div>
+      <div class="cta-title">Quer mergulhar mais fundo<br>na sua marca?</div>
+      <div class="cta-desc">O Diagnóstico Sintético deu uma visão geral da posição da sua marca. O <strong style="color:var(--green)">Diagnóstico Analítico</strong> vai muito além — são 140 perguntas que revelam com precisão técnica cada dimensão da marca, os padrões que estão freando o avanço e as alavancas que vão levar sua marca ao próximo ciclo.</div>
+      <button class="btn-cta" style="margin-bottom:16px">Quero fazer o Diagnóstico Analítico →</button>
+      <div style="width:100%;height:1px;background:rgba(255,255,255,0.08);margin:24px 0"></div>
+      <div class="cta-eyebrow" style="margin-bottom:12px">Ou dê o próximo passo agora</div>
+      <div class="cta-desc" style="margin-bottom:24px">A consultoria transforma o diagnóstico em um plano de ação concreto — com estratégias específicas para levar sua marca ao próximo ciclo.</div>
+      <button class="btn-cta" style="background:#fff;color:var(--black)" onclick="openWhatsApp()">Quero evoluir minha marca →</button>
+      <div class="cta-note">Sessão estratégica de diagnóstico aprofundado · Sem compromisso</div>
+      <button class="btn-restart" onclick="restartQuiz()">Refazer o diagnóstico</button>
+    </div>`;
+  } else {
+    html+=`<div class="cta-section fade-4">
+      <div class="cta-eyebrow">Próximo passo</div>
+      <div class="cta-title">O diagnóstico revelou o mapa.<br>Agora é hora de executar.</div>
+      <div class="cta-desc">Seu Diagnóstico Analítico mostra com precisão onde a marca está e o que precisa acontecer. A consultoria transforma esse mapa em um plano de ação concreto — com estratégias específicas para levar sua marca ao próximo ciclo.</div>
+      <button class="btn-cta" onclick="openWhatsApp()">Quero evoluir minha marca →</button>
+      <div class="cta-note">Sessão estratégica de diagnóstico aprofundado · Sem compromisso</div>
+      <button class="btn-restart" onclick="restartQuiz()">Refazer o diagnóstico</button>
+    </div>`;
+  }
+
+  document.getElementById('report-content').innerHTML=html;
+
+  setTimeout(()=>{
+    // Velocímetro (gauge)
+    const gc=document.getElementById('gaugeChart');
+    if(gc){
+      const remaining=100-totPct;
+      const gaugeColors=totPct<=25?'#c0392b':totPct<=50?'#d4680a':totPct<=75?'#c49a00':'#3a8f4a';
+      new Chart(gc,{
+        type:'doughnut',
+        data:{
+          datasets:[{
+            data:[totPct,remaining,100],
+            backgroundColor:[gaugeColors,'#f0f0ec','transparent'],
+            borderWidth:0,
+            circumference:180,
+            rotation:270
+          }]
+        },
+        options:{
+          responsive:false,
+          cutout:'75%',
+          plugins:{legend:{display:false},tooltip:{enabled:false}}
+        }
+      });
+    }
+
+    // Radar
+    const rc=document.getElementById('radarChart');
+    if(rc){
+      const data=bres.map(b=>b.pct);
+      const pointColors=data.map(v=>getStatus(v).color);
+      new Chart(rc,{
+        type:'radar',
+        data:{
+          labels:BLOCKS.map(b=>b.name.split(' e ')[0].split(',')[0].substring(0,20)),
+          datasets:[{
+            label:'Sua Marca',
+            data,
+            backgroundColor:'rgba(200,230,176,0.15)',
+            borderColor:'rgba(122,179,86,0.7)',
+            borderWidth:2,
+            pointBackgroundColor:pointColors,
+            pointBorderColor:'#fff',
+            pointBorderWidth:2,
+            pointRadius:6,
+            pointHoverRadius:9
+          },{
+            label:'Referência',
+            data:[100,100,100,100,100,100,100],
+            backgroundColor:'transparent',
+            borderColor:'rgba(0,0,0,0.06)',
+            borderWidth:1,
+            borderDash:[4,4],
+            pointRadius:0
+          }]
+        },
+        options:{
+          responsive:true,
+          plugins:{legend:{display:false},tooltip:{
+            backgroundColor:'#fff',
+            borderColor:'#e4e4de',
+            borderWidth:1,
+            titleColor:'#0d0d0d',
+            bodyColor:'#6b6b6b',
+            padding:12,
+            callbacks:{label:ctx=>{if(ctx.datasetIndex===1)return null;const v=ctx.raw;return ` ${v}% — ${getStatus(v).label}`;}}
+          }},
+          scales:{r:{
+            min:0,max:100,
+            ticks:{stepSize:25,color:'#b0b0a8',font:{size:10},backdropColor:'transparent',callback:v=>v+'%'},
+            grid:{color:'rgba(0,0,0,0.06)'},
+            angleLines:{color:'rgba(0,0,0,0.06)'},
+            pointLabels:{color:'#6b6b6b',font:{size:11,family:'Montserrat',weight:'600'}}
+          }}
+        }
+      });
+    }
+  },200);
+}
+
+function downloadPDF() {
+  const btn = document.getElementById('btn-pdf');
+  btn.disabled = true;
+  btn.textContent = '⏳ Gerando PDF...';
+
+  const company = userData.company || 'Diagnostico';
+  const version = selectedVersion === 'essential' ? 'Sintetico' : 'Analitico';
+  const filename = `Ciclo-de-Marca_${company.replace(/\s+/g,'-')}_${version}.pdf`;
+
+  const element = document.getElementById('report-content');
+
+  const opt = {
+    margin: [12, 12, 12, 12],
+    filename,
+    image: { type: 'jpeg', quality: 0.95 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false
+    },
+    jsPDF: {
+      unit: 'mm',
+      format: 'a4',
+      orientation: 'portrait'
+    },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+  };
+
+  html2pdf().set(opt).from(element).save().then(() => {
+    btn.disabled = false;
+    btn.textContent = '↓ Baixar PDF';
+  }).catch(() => {
+    btn.disabled = false;
+    btn.textContent = '↓ Baixar PDF';
+  });
+}
+
+function openWhatsApp(){
+  const name = userData.name || '';
+  const company = userData.company || '';
+  const version = selectedVersion === 'essential' ? 'Diagnóstico Sintético' : 'Diagnóstico Analítico';
+  const msg = `Olá! Me chamo *${name}* e acabei de concluir o *${version}* do Ciclo de Marca pela plataforma MAM.${company ? ` Represento a empresa *${company}*.` : ''} Gostaria de conversar sobre a consultoria para evoluir minha marca. 🚀`;
+  const url = `https://wa.me/5544999927092?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+
+function restartQuiz(){
+  clearProgress();
+  answers={};currentBlock=0;selectedVersion=null;userData={};totalQuestions=0;
+  document.getElementById('screen-report').style.display='none';
+  document.getElementById('screen-form').style.display='none';
+  document.getElementById('screen-start').style.display='flex';
+  document.getElementById('card-essential').classList.remove('selected');
+  document.getElementById('card-deep').classList.remove('selected');
+  document.getElementById('btn-start').disabled=true;
+  document.getElementById('field-name').value='';
+  document.getElementById('field-company').value='';
+  document.getElementById('field-email').value='';
+  document.getElementById('field-phone').value='';
+  document.getElementById('btn-form-submit').disabled=true;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
