@@ -1078,7 +1078,35 @@
     text-underline-offset: 3px;
   }
 
-  /* ─── BANNER DE RETOMADA ─── */
+  /* ─── IMPRESSÃO / PDF ─── */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  @media print {
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { background: #ffffff !important; }
+    .report-top { position: relative !important; border-bottom: 1px solid #e4e4de; }
+    #btn-pdf { display: none !important; }
+    .cta-section { display: none !important; }
+    .btn-restart { display: none !important; }
+    #screen-start, #screen-form, #screen-quiz, #resume-banner { display: none !important; }
+    #screen-report { display: block !important; }
+    .phase-card { background: #0d0d0d !important; -webkit-print-color-adjust: exact !important; }
+    .phase-name { color: #c8e6b0 !important; }
+    .phase-stat-value { color: #c8e6b0 !important; }
+    .gauge-value { color: #ffffff !important; }
+    .s-critical .bc-bar { background: #c0392b !important; }
+    .s-vulnerable .bc-bar { background: #d4680a !important; }
+    .s-stable .bc-bar { background: #c49a00 !important; }
+    .s-healthy .bc-bar { background: #3a8f4a !important; }
+    .s-critical .bc-status { background: #fdf0ee !important; color: #c0392b !important; }
+    .s-vulnerable .bc-status { background: #fef3ea !important; color: #d4680a !important; }
+    .s-stable .bc-status { background: #fdf8e1 !important; color: #c49a00 !important; }
+    .s-healthy .bc-status { background: #f0f7ea !important; color: #3a8f4a !important; }
+    .pattern-box { background: #f0f7ea !important; }
+    .alert-strip { background: #fffbf0 !important; }
+    .section { page-break-inside: avoid; }
+    .block-card { page-break-inside: avoid; }
+  }
   #resume-banner {
     position: fixed;
     bottom: -160px;
@@ -1186,6 +1214,7 @@
     background: var(--bg);
     position: relative;
     overflow: hidden;
+    width: 100%;
   }
 
   #screen-form::before {
@@ -1612,7 +1641,7 @@ function getQuestions(bi) {
   return selectedVersion==='essential' ? b.questions.essential : [...b.questions.essential,...b.questions.deep];
 }
 
-function renderBlock(bi) {
+function renderBlock(bi, scrollTop=true) {
   const b=BLOCKS[bi]; const qs=getQuestions(bi);
   const answered=qs.filter((_,qi)=>answers[`${bi}_${qi}`]!==undefined).length;
   const totalAns=Object.keys(answers).length;
@@ -1660,13 +1689,17 @@ function renderBlock(bi) {
   </div>`;
 
   document.getElementById('quiz-body').innerHTML=html;
-  window.scrollTo({top:0,behavior:'smooth'});
+  if(scrollTop) window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function selectAnswer(bi,qi,score) {
+  // Guardar posição atual do scroll antes de re-renderizar
+  const scrollPos = window.scrollY;
   answers[`${bi}_${qi}`]=score;
   saveProgress();
-  renderBlock(bi);
+  renderBlock(bi, false); // false = não rolar ao topo
+  // Restaurar posição do scroll
+  window.scrollTo({top:scrollPos});
 }
 
 function nextBlock() {
@@ -1870,7 +1903,7 @@ function generateReport() {
       <div class="cta-eyebrow">Você fez o Diagnóstico Sintético</div>
       <div class="cta-title">Quer mergulhar mais fundo<br>na sua marca?</div>
       <div class="cta-desc">O Diagnóstico Sintético deu uma visão geral da posição da sua marca. O <strong style="color:var(--green)">Diagnóstico Analítico</strong> vai muito além — são 140 perguntas que revelam com precisão técnica cada dimensão da marca, os padrões que estão freando o avanço e as alavancas que vão levar sua marca ao próximo ciclo.</div>
-      <button class="btn-cta" style="margin-bottom:16px">Quero fazer o Diagnóstico Analítico →</button>
+      <button class="btn-cta" style="margin-bottom:16px" onclick="switchToAnalytic()">Quero fazer o Diagnóstico Analítico →</button>
       <div style="width:100%;height:1px;background:rgba(255,255,255,0.08);margin:24px 0"></div>
       <div class="cta-eyebrow" style="margin-bottom:12px">Ou dê o próximo passo agora</div>
       <div class="cta-desc" style="margin-bottom:24px">A consultoria transforma o diagnóstico em um plano de ação concreto — com estratégias específicas para levar sua marca ao próximo ciclo.</div>
@@ -1921,10 +1954,11 @@ function generateReport() {
     if(rc){
       const data=bres.map(b=>b.pct);
       const pointColors=data.map(v=>getStatus(v).color);
+      const labels=['Percepção','Competitividade','Financeiro','Branding','Relacionamento','Pessoas','Empreendedor'];
       new Chart(rc,{
         type:'radar',
         data:{
-          labels:BLOCKS.map(b=>b.name.split(' e ')[0].split(',')[0].substring(0,20)),
+          labels,
           datasets:[{
             label:'Sua Marca',
             data,
@@ -1948,6 +1982,7 @@ function generateReport() {
         },
         options:{
           responsive:true,
+          layout:{ padding:24 },
           plugins:{legend:{display:false},tooltip:{
             backgroundColor:'#fff',
             borderColor:'#e4e4de',
@@ -1962,7 +1997,7 @@ function generateReport() {
             ticks:{stepSize:25,color:'#b0b0a8',font:{size:10},backdropColor:'transparent',callback:v=>v+'%'},
             grid:{color:'rgba(0,0,0,0.06)'},
             angleLines:{color:'rgba(0,0,0,0.06)'},
-            pointLabels:{color:'#6b6b6b',font:{size:11,family:'Montserrat',weight:'600'}}
+            pointLabels:{color:'#6b6b6b',font:{size:11,family:'Montserrat',weight:'600'},padding:10}
           }}
         }
       });
@@ -1973,39 +2008,45 @@ function generateReport() {
 function downloadPDF() {
   const btn = document.getElementById('btn-pdf');
   btn.disabled = true;
-  btn.textContent = '⏳ Gerando PDF...';
+  btn.textContent = '⏳ Preparando...';
 
-  const company = userData.company || 'Diagnostico';
-  const version = selectedVersion === 'essential' ? 'Sintetico' : 'Analitico';
-  const filename = `Ciclo-de-Marca_${company.replace(/\s+/g,'-')}_${version}.pdf`;
-
-  const element = document.getElementById('report-content');
-
-  const opt = {
-    margin: [12, 12, 12, 12],
-    filename,
-    image: { type: 'jpeg', quality: 0.95 },
-    html2canvas: {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      logging: false
-    },
-    jsPDF: {
-      unit: 'mm',
-      format: 'a4',
-      orientation: 'portrait'
-    },
-    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-  };
-
-  html2pdf().set(opt).from(element).save().then(() => {
-    btn.disabled = false;
-    btn.textContent = '↓ Baixar PDF';
-  }).catch(() => {
-    btn.disabled = false;
-    btn.textContent = '↓ Baixar PDF';
+  // Converter canvas para imagens antes de imprimir
+  const canvases = document.querySelectorAll('canvas');
+  const canvasData = [];
+  canvases.forEach(canvas => {
+    try {
+      const img = document.createElement('img');
+      img.src = canvas.toDataURL('image/png', 1.0);
+      img.style.cssText = `width:${canvas.offsetWidth}px;height:${canvas.offsetHeight}px;display:block;margin:0 auto;`;
+      canvas.parentNode.insertBefore(img, canvas);
+      canvas.style.display = 'none';
+      canvasData.push({ canvas, img });
+    } catch(e){}
   });
+
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => {
+      canvasData.forEach(({ canvas, img }) => {
+        canvas.style.display = '';
+        img.remove();
+      });
+      btn.disabled = false;
+      btn.textContent = '↓ Baixar PDF';
+    }, 1500);
+  }, 400);
+}
+
+function switchToAnalytic() {
+  // Muda para versão analítica mantendo dados do usuário
+  selectedVersion = 'deep';
+  totalQuestions = BLOCKS.length * 20;
+  answers = {};
+  currentBlock = 0;
+  saveProgress();
+  document.getElementById('screen-report').style.display = 'none';
+  document.getElementById('screen-quiz').style.display = 'block';
+  renderBlock(0);
 }
 
 function openWhatsApp(){
