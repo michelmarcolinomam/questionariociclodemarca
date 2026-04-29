@@ -1695,6 +1695,8 @@ function startQuiz() {
   totalQuestions = BLOCKS.length * (selectedVersion==='essential'?10:20);
   saveProgress();
   document.getElementById('screen-form').style.display='none';
+  document.getElementById('screen-access').style.display='none';
+  document.getElementById('screen-start').style.display='none';
   document.getElementById('screen-quiz').style.display='block';
   currentBlock=0; renderBlock(0);
 }
@@ -1851,7 +1853,7 @@ function nextBlock() {
   if(currentBlock<BLOCKS.length-1){
     currentBlock++;
     saveProgress();
-    renderBlock(currentBlock);
+    renderBlock(currentBlock, true);
   } else generateReport();
 }
 
@@ -2349,6 +2351,7 @@ function enterWithKey() {
   localStorage.setItem('mam_access_key', accessKey);
   // Esconder tela de acesso e mostrar tela inicial do quiz
   document.getElementById('screen-access').style.display = 'none';
+  document.getElementById('screen-form').style.display = 'none';
   document.getElementById('screen-start').style.display = 'flex';
   window.scrollTo({top:0,behavior:'smooth'});
 }
