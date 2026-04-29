@@ -1648,10 +1648,23 @@ function selectVersion(v) {
 
 function goToForm() {
   if(!selectedVersion) return;
+  // Se já passou pela tela de acesso, não mostrar formulário novamente
+  if(localStorage.getItem('mam_key_used') === 'true') {
+    startQuizDirect();
+    return;
+  }
   document.getElementById('screen-start').style.display='none';
   document.getElementById('screen-form').style.display='flex';
   document.getElementById('form-badge').textContent=selectedVersion==='essential'?'Diagnóstico Sintético':'Diagnóstico Analítico';
   window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function startQuizDirect() {
+  totalQuestions = BLOCKS.length * (selectedVersion==='essential'?10:20);
+  saveProgress();
+  document.getElementById('screen-start').style.display='none';
+  document.getElementById('screen-quiz').style.display='block';
+  currentBlock=0; renderBlock(0);
 }
 
 function backToStart() {
@@ -1693,6 +1706,7 @@ function startQuiz() {
   document.getElementById('report-company-name').textContent=company;
 
   totalQuestions = BLOCKS.length * (selectedVersion==='essential'?10:20);
+  localStorage.setItem('mam_key_used', 'true');
   saveProgress();
   document.getElementById('screen-form').style.display='none';
   document.getElementById('screen-access').style.display='none';
@@ -1788,7 +1802,7 @@ function getQuestions(bi) {
   return selectedVersion==='essential' ? b.questions.essential : [...b.questions.essential,...b.questions.deep];
 }
 
-function renderBlock(bi) {
+function renderBlock(bi, scrollToTop=true) {
   const b=BLOCKS[bi]; const qs=getQuestions(bi);
   const answered=qs.filter((_,qi)=>answers[`${bi}_${qi}`]!==undefined).length;
   const totalAns=Object.keys(answers).length;
@@ -1836,13 +1850,23 @@ function renderBlock(bi) {
   </div>`;
 
   document.getElementById('quiz-body').innerHTML=html;
-  window.scrollTo({top:0,behavior:'smooth'});
+  if(scrollToTop) window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function selectAnswer(bi,qi,score) {
+  const scrollPos = window.scrollY;
   answers[`${bi}_${qi}`]=score;
   saveProgress();
-  renderBlock(bi);
+  renderBlock(bi, false);
+  // Rolar para centralizar a próxima pergunta não respondida
+  setTimeout(() => {
+    const nextCard = document.getElementById(`qcard_${qi+1}`);
+    if(nextCard) {
+      const rect = nextCard.getBoundingClientRect();
+      const offset = window.scrollY + rect.top - (window.innerHeight/2) + (rect.height/2);
+      window.scrollTo({top: Math.max(0, offset), behavior:'smooth'});
+    }
+  }, 60);
 }
 
 function nextBlock() {
@@ -2405,14 +2429,6 @@ async function useAccessKey() {
 }
 
 // Verificar se já tem chave salva (retomada)
-(function checkSavedKey() {
-  const saved = localStorage.getItem('mam_access_key');
-  if(saved) {
-    accessKey = saved;
-    document.getElementById('screen-access').style.display = 'none';
-    document.getElementById('screen-start').style.display = 'flex';
-  }
-})();
 
 </script>
 </body>
