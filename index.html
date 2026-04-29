@@ -1782,7 +1782,11 @@ function showResumeBanner() {
 function resumeQuiz() {
   document.getElementById('resume-banner').remove();
   document.getElementById('report-company-name').textContent = userData.company || '';
+  // Esconder TODAS as telas de acesso e formulário
+  document.getElementById('screen-access').style.display = 'none';
   document.getElementById('screen-start').style.display = 'none';
+  document.getElementById('screen-form').style.display = 'none';
+  localStorage.setItem('mam_key_used', 'true');
   document.getElementById('screen-quiz').style.display = 'block';
   renderBlock(currentBlock);
 }
