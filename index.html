@@ -2370,10 +2370,9 @@ function copyAccessKey() {
 }
 
 function enterWithKey() {
-  // Marcar chave como usada e liberar acesso
   supaFetch('PATCH', `acessos?chave=eq.${accessKey}`, { usado: true }).catch(console.error);
   localStorage.setItem('mam_access_key', accessKey);
-  // Esconder tela de acesso e mostrar tela inicial do quiz
+  localStorage.setItem('mam_key_used', 'true');
   document.getElementById('screen-access').style.display = 'none';
   document.getElementById('screen-form').style.display = 'none';
   document.getElementById('screen-start').style.display = 'flex';
@@ -2415,6 +2414,7 @@ async function useAccessKey() {
     localStorage.setItem('mam_access_key', chave);
     showAccessToast('✓ Chave validada! Acessando...');
     setTimeout(() => {
+      localStorage.setItem('mam_key_used', 'true');
       document.getElementById('screen-access').style.display = 'none';
       document.getElementById('screen-start').style.display = 'flex';
       window.scrollTo({top:0,behavior:'smooth'});
