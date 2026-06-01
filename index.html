@@ -1530,7 +1530,7 @@
 </div>
 
 <!-- ═══════════ FORMULÁRIO ═══════════ -->
-<div id="screen-form" style="display:none">
+<div id="screen-form" style="display:flex">
   <div class="form-wrap">
     <div class="form-logo">
       <svg viewBox="0 0 743.9 150" fill="#0d0d0d"><use href="#mam-logo"/></svg>
@@ -1646,14 +1646,13 @@ function selectVersion(v) {
 
 function goToForm() {
   if(!selectedVersion) return;
-  // Se já passou pela tela de acesso, não mostrar formulário novamente
-  if(localStorage.getItem('mam_key_used') === 'true') {
-    startQuizDirect();
-    return;
-  }
+  // Dados já coletados no formulário inicial — ir direto para o quiz
+  totalQuestions = BLOCKS.length * (selectedVersion==='essential'?10:20);
+  localStorage.setItem('mam_key_used', 'true');
+  saveProgress();
   document.getElementById('screen-start').style.display='none';
-  document.getElementById('screen-form').style.display='flex';
-  document.getElementById('form-badge').textContent=selectedVersion==='essential'?'Diagnóstico Sintético':'Diagnóstico Analítico';
+  document.getElementById('screen-quiz').style.display='block';
+  currentBlock=0; renderBlock(0);
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -1689,7 +1688,7 @@ function formatPhone(input) {
   input.value=v;
 }
 
-function startQuiz() {
+async function startQuiz() {
   // Validar formulário
   const name=document.getElementById('field-name').value.trim();
   const company=document.getElementById('field-company').value.trim();
@@ -1699,18 +1698,28 @@ function startQuiz() {
 
   // Guardar dados
   userData={name,company,email,phone};
-
-  // Atualizar metainfo do relatório
   document.getElementById('report-company-name').textContent=company;
-
-  totalQuestions = BLOCKS.length * (selectedVersion==='essential'?10:20);
-  localStorage.setItem('mam_key_used', 'true');
   saveProgress();
+
+  // Salvar lead no Supabase (sem bloquear o fluxo)
+  try {
+    await fetch('https://pachehtpcwhqbrmquhrj.supabase.co/rest/v1/acessos', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2hlaHRwY3docWJybXF1aHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczNzkyNTcsImV4cCI6MjA5Mjk1NTI1N30.nZtf3qyp-S2gOz4ANvR13k5Ea5OhMQMx2RXHsRkSA2s',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2hlaHRwY3docWJybXF1aHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczNzkyNTcsImV4cCI6MjA5Mjk1NTI1N30.nZtf3qyp-S2gOz4ANvR13k5Ea5OhMQMx2RXHsRkSA2s',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ nome: name, empresa: company, email, whatsapp: phone, usado: false })
+    });
+  } catch(e) { console.log('Lead salvo localmente apenas'); }
+
+  // Ir para seleção de versão
   document.getElementById('screen-form').style.display='none';
   document.getElementById('screen-access').style.display='none';
-  document.getElementById('screen-start').style.display='none';
-  document.getElementById('screen-quiz').style.display='block';
-  currentBlock=0; renderBlock(0);
+  document.getElementById('screen-start').style.display='flex';
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 // ══════════════════════════════════════
@@ -1780,7 +1789,6 @@ function showResumeBanner() {
 function resumeQuiz() {
   document.getElementById('resume-banner').remove();
   document.getElementById('report-company-name').textContent = userData.company || '';
-  // Esconder TODAS as telas de acesso e formulário
   document.getElementById('screen-access').style.display = 'none';
   document.getElementById('screen-start').style.display = 'none';
   document.getElementById('screen-form').style.display = 'none';
@@ -2172,7 +2180,7 @@ function generateReport() {
   },200);
 }
 
-function downloadPDF() {
+async function downloadPDF() {
   const btn = document.getElementById('btn-pdf');
   btn.disabled = true;
   btn.textContent = '⏳ Gerando PDF...';
@@ -2181,33 +2189,71 @@ function downloadPDF() {
   const version = selectedVersion === 'essential' ? 'Sintetico' : 'Analitico';
   const filename = `Ciclo-de-Marca_${company.replace(/\s+/g,'-')}_${version}.pdf`;
 
+  // Aguardar gráficos renderizarem completamente
+  await new Promise(resolve => setTimeout(resolve, 800));
+
+  // Converter todos os canvas para imagens antes do html2pdf
   const element = document.getElementById('report-content');
+  const canvasList = element.querySelectorAll('canvas');
+  const canvasDataMap = new Map();
+
+  canvasList.forEach(canvas => {
+    try {
+      const dataURL = canvas.toDataURL('image/png', 1.0);
+      canvasDataMap.set(canvas, dataURL);
+      const img = document.createElement('img');
+      img.src = dataURL;
+      img.style.width = canvas.style.width || canvas.offsetWidth + 'px';
+      img.style.height = canvas.style.height || canvas.offsetHeight + 'px';
+      img.style.display = 'block';
+      img.className = 'canvas-replacement';
+      canvas.parentNode.insertBefore(img, canvas);
+      canvas.style.display = 'none';
+    } catch(e) { console.log('Canvas skip:', e); }
+  });
+
+  // Pequeno delay para DOM atualizar
+  await new Promise(resolve => setTimeout(resolve, 200));
 
   const opt = {
     margin: [12, 12, 12, 12],
     filename,
-    image: { type: 'jpeg', quality: 0.95 },
+    image: { type: 'jpeg', quality: 0.98 },
     html2canvas: {
       scale: 2,
       useCORS: true,
+      allowTaint: true,
       backgroundColor: '#ffffff',
-      logging: false
+      logging: false,
+      onclone: (doc) => {
+        // Garantir que imagens de substituição estejam visíveis no clone
+        doc.querySelectorAll('.canvas-replacement').forEach(img => {
+          img.style.display = 'block';
+        });
+        doc.querySelectorAll('canvas').forEach(c => {
+          c.style.display = 'none';
+        });
+      }
     },
     jsPDF: {
       unit: 'mm',
       format: 'a4',
       orientation: 'portrait'
     },
-    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    pagebreak: { mode: ['css', 'legacy'] }
   };
 
-  html2pdf().set(opt).from(element).save().then(() => {
+  try {
+    await html2pdf().set(opt).from(element).save();
+  } catch(e) {
+    console.error('PDF error:', e);
+  } finally {
+    // Restaurar canvas originais
+    element.querySelectorAll('.canvas-replacement').forEach(img => img.remove());
+    canvasList.forEach(canvas => canvas.style.display = '');
     btn.disabled = false;
     btn.textContent = '↓ Baixar PDF';
-  }).catch(() => {
-    btn.disabled = false;
-    btn.textContent = '↓ Baixar PDF';
-  });
+  }
 }
 
 function openWhatsApp(){
