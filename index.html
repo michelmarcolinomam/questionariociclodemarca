@@ -2039,6 +2039,8 @@ async function verRelatorioSalvo(chave) {
 
     // modo interno: esconder CTAs de venda/refazer (são para o cliente)
     document.querySelectorAll('.cta-section').forEach((el) => { el.style.display = 'none'; });
+    // remove o piso de 100vh do body p/ não sobrar respiro dentro do iframe
+    document.body.style.minHeight = '0';
 
     // auto-altura do iframe no gestor: faz polling por ~8s (pega o relatório
     // mesmo que os gráficos/fontes demorem) + ResizeObserver p/ mudanças.
@@ -2047,19 +2049,21 @@ async function verRelatorioSalvo(chave) {
     try { new ResizeObserver(avisarAltura).observe(document.body); } catch (e) {}
   } catch (e) { console.error('verRelatorioSalvo:', e); }
 }
-// avisa a página-mãe (gestor) da altura do relatório, p/ o iframe crescer.
-// Mede pelo getBoundingClientRect do #screen-report (confiável mesmo quando o
-// scrollHeight do body vem 0 dentro do iframe).
+// avisa a página-mãe (gestor) da altura EXATA do conteúdo do relatório.
+// Mede o rodapé do último bloco VISÍVEL de #report-content (ignora o CTA
+// escondido). NÃO usa scrollHeight do body/html — que é inflado pelo
+// min-height:100vh dentro do iframe e criaria um loop de crescimento.
 function avisarAltura() {
   try {
-    let h = 0;
     const rep = document.getElementById('screen-report');
-    if (rep && rep.style.display !== 'none') {
-      const r = rep.getBoundingClientRect();
-      h = Math.ceil(r.bottom + (window.scrollY || window.pageYOffset || 0));
+    if (!rep || rep.style.display === 'none') return;
+    const rc = document.getElementById('report-content') || rep;
+    const visiveis = Array.from(rc.children).filter((el) => el.getClientRects().length > 0);
+    const alvo = visiveis.length ? visiveis[visiveis.length - 1] : rc;
+    const h = Math.ceil(alvo.getBoundingClientRect().bottom + (window.scrollY || window.pageYOffset || 0));
+    if (h > 200 && window.parent && window.parent !== window) {
+      window.parent.postMessage({ tipo: 'mam-relatorio-altura', altura: h }, '*');
     }
-    h = Math.max(h, document.body.scrollHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight);
-    if (h > 200 && window.parent && window.parent !== window) window.parent.postMessage({ tipo: 'mam-relatorio-altura', altura: h }, '*');
   } catch (e) {}
 }
 
