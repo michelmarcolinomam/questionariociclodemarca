@@ -2040,11 +2040,11 @@ async function verRelatorioSalvo(chave) {
     // modo interno: esconder CTAs de venda/refazer (são para o cliente)
     document.querySelectorAll('.cta-section').forEach((el) => { el.style.display = 'none'; });
 
-    // auto-altura do iframe no gestor: ResizeObserver (dispara quando renderiza)
-    // + rAF + fallbacks. avisarAltura ignora valores lixo (<=200).
-    requestAnimationFrame(avisarAltura);
-    [400, 1000, 2000, 3500].forEach((t) => setTimeout(avisarAltura, t));
-    try { new ResizeObserver(avisarAltura).observe(document.documentElement); } catch (e) {}
+    // auto-altura do iframe no gestor: faz polling por ~8s (pega o relatório
+    // mesmo que os gráficos/fontes demorem) + ResizeObserver p/ mudanças.
+    let tentativas = 0;
+    const iv = setInterval(() => { avisarAltura(); if (++tentativas > 32) clearInterval(iv); }, 250);
+    try { new ResizeObserver(avisarAltura).observe(document.body); } catch (e) {}
   } catch (e) { console.error('verRelatorioSalvo:', e); }
 }
 // avisa a página-mãe (gestor) da altura do relatório, p/ o iframe crescer
