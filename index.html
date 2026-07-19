@@ -1432,11 +1432,11 @@
 
 <!-- TOAST -->
 <!-- ═══════════ TELA DE ACESSO — CADASTRO ═══════════ -->
-<div id="screen-access" style="display:none">
+<div id="screen-access" style="display:flex">
   <div class="access-logo">
     <svg viewBox="0 0 743.9 150" fill="#0d0d0d"><use href="#mam-logo"/></svg>
   </div>
-  <div class="access-card" id="access-card-register">
+  <div class="access-card" id="access-card-register" style="display:none">
     <div class="access-badge access-badge-light">Diagnóstico da Sua Marca</div>
     <h1 class="access-title">Crie seu acesso<br><em>exclusivo</em></h1>
     <p class="access-sub">Preencha seus dados para gerar sua chave de acesso única e intransferível ao diagnóstico.</p>
@@ -1482,10 +1482,10 @@
   </div>
 
   <!-- Tela usar chave -->
-  <div class="access-card" id="access-card-usekey" style="display:none">
-    <div class="access-badge access-badge-light">Já tenho uma chave</div>
+  <div class="access-card" id="access-card-usekey">
+    <div class="access-badge access-badge-light">Diagnóstico da Sua Marca</div>
     <h1 class="access-title">Digite sua<br><em>chave de acesso</em></h1>
-    <p class="access-sub">Insira a chave que você recebeu ao se cadastrar para acessar o diagnóstico.</p>
+    <p class="access-sub">Insira a chave de acesso que a MAM enviou para você e acesse o seu diagnóstico.</p>
     <div class="form-group">
       <label class="form-label">Chave de Acesso <span class="form-required">*</span></label>
       <input class="form-input" type="text" id="acc-key-input"
@@ -1497,13 +1497,12 @@
     <button class="btn-primary" id="btn-use-key" onclick="useAccessKey()" disabled style="width:100%;margin-top:8px">
       <span id="btn-use-key-text">Acessar o Diagnóstico →</span>
     </button>
-    <div class="access-or">ou</div>
-    <button class="btn-access-link" onclick="showAccessScreen('register')">← Criar um novo acesso</button>
+    <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:14px;font-weight:500">🔒 Acesso exclusivo para clientes da MAM</p>
   </div>
 </div>
 
 <!-- ═══════════ TELA INICIAL ═══════════ -->
-<div id="screen-start" style="display:flex">
+<div id="screen-start" style="display:none">
   <div class="start-logo">
     <svg viewBox="0 0 743.9 150" fill="#0d0d0d"><use href="#mam-logo"/></svg>
   </div>
@@ -1529,8 +1528,8 @@
   <button class="btn-primary" id="btn-start" onclick="goToForm()" disabled>Iniciar Diagnóstico</button>
 </div>
 
-<!-- ═══════════ FORMULÁRIO ═══════════ -->
-<div id="screen-form" style="display:flex">
+<!-- ═══════════ FORMULÁRIO (legado — bypass no modelo pré-atribuído) ═══════════ -->
+<div id="screen-form" style="display:none">
   <div class="form-wrap">
     <div class="form-logo">
       <svg viewBox="0 0 743.9 150" fill="#0d0d0d"><use href="#mam-logo"/></svg>
@@ -1701,19 +1700,7 @@ async function startQuiz() {
   document.getElementById('report-company-name').textContent=company;
   saveProgress();
 
-  // Salvar lead no Supabase (sem bloquear o fluxo)
-  try {
-    await fetch('https://pachehtpcwhqbrmquhrj.supabase.co/rest/v1/acessos', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2hlaHRwY3docWJybXF1aHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczNzkyNTcsImV4cCI6MjA5Mjk1NTI1N30.nZtf3qyp-S2gOz4ANvR13k5Ea5OhMQMx2RXHsRkSA2s',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2hlaHRwY3docWJybXF1aHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczNzkyNTcsImV4cCI6MjA5Mjk1NTI1N30.nZtf3qyp-S2gOz4ANvR13k5Ea5OhMQMx2RXHsRkSA2s',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify({ nome: name, empresa: company, email, whatsapp: phone, usado: false })
-    });
-  } catch(e) { console.log('Lead salvo localmente apenas'); }
+  // (modelo pré-atribuído: sem captura de lead — o cliente já vem da base MAM)
 
   // Ir para seleção de versão
   document.getElementById('screen-form').style.display='none';
@@ -1752,8 +1739,18 @@ function clearProgress() {
   try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
 }
 
-// Verificar progresso salvo ao carregar a página
+// Verificar progresso salvo / chave via URL ao carregar a página
 window.addEventListener('load', () => {
+  const chaveUrl = new URLSearchParams(window.location.search).get('chave');
+  if (chaveUrl) {
+    // Acesso pré-atribuído: mostra a tela de chave, pré-preenche e valida direto.
+    document.getElementById('screen-access').style.display = 'flex';
+    showAccessScreen('use-key');
+    const input = document.getElementById('acc-key-input');
+    if (input) input.value = chaveUrl.toUpperCase();
+    validarChaveUrl(chaveUrl.toUpperCase());
+    return;
+  }
   if (loadProgress()) {
     // Mostrar banner de retomada
     showResumeBanner();
@@ -1963,6 +1960,44 @@ function getInsight(bi,pct) {
 }
 
 // ══════════════════════════════════════
+// SALVAR RESPOSTAS NO SUPABASE (diagnostico_respostas)
+// ══════════════════════════════════════
+async function salvarRespostas(bres, totPct, phase) {
+  if (!accessKey) return; // sem chave = nada a salvar
+  // detalhe: array de todas as respostas {bloco, bloco_nome, pergunta_id, score}
+  const detalhe = [];
+  BLOCKS.forEach((b, i) => {
+    getQuestions(i).forEach((_, qi) => {
+      detalhe.push({ bloco: i + 1, bloco_nome: b.name, pergunta_id: qi, score: (answers[`${i}_${qi}`] ?? null) });
+    });
+  });
+  const porBloco = {};
+  bres.forEach((b, i) => { porBloco['bloco_' + (i + 1)] = b.pct; });
+
+  try {
+    await supaFetch('POST', 'diagnostico_respostas?on_conflict=chave_acesso', {
+      cliente_id: clienteId,
+      chave_acesso: accessKey,
+      nome_respondente: userData.name || null,
+      empresa: userData.company || clienteNome || null,
+      email: userData.email || null,
+      whatsapp: userData.phone || null,
+      versao_questionario: selectedVersion,
+      respostas: detalhe,
+      score_total: totPct,
+      score_por_bloco: porBloco,
+      fase_ciclo: phase.name
+    }, 'resolution=merge-duplicates,return=minimal');
+
+    if (clienteId) {
+      await supaFetch('PATCH', `clientes?chave_acesso=eq.${encodeURIComponent(accessKey)}`, { questionario_status: 'preenchido' });
+    }
+  } catch (err) {
+    console.error('Erro ao salvar respostas do diagnóstico:', err);
+  }
+}
+
+// ══════════════════════════════════════
 // RELATÓRIO
 // ══════════════════════════════════════
 function generateReport() {
@@ -1981,6 +2016,9 @@ function generateReport() {
   const sorted=[...bres].sort((a,b)=>b.pct-a.pct);
   const strengths=sorted.slice(0,3);
   const vulns=sorted.slice(-3).reverse();
+
+  // Persistir o diagnóstico no Supabase (não bloqueia a renderização)
+  salvarRespostas(bres, totPct, phase);
 
   let html='';
 
@@ -2283,12 +2321,14 @@ function restartQuiz(){
 }
 
 // ══════════════════════════════════════
-// SUPABASE — SISTEMA DE CHAVE
+// SUPABASE — SISTEMA DE CHAVE (clientes da base MAM · projeto gestor-mam)
 // ══════════════════════════════════════
-const SUPABASE_URL = 'https://pachehtpcwhqbrmquhrj.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2hlaHRwY3docWJybXF1aHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczNzkyNTcsImV4cCI6MjA5Mjk1NTI1N30.nZtf3qyp-S2gOz4ANvR13k5Ea5OhMQMx2RXHsRkSA2s';
+const SUPABASE_URL = 'https://zokmlfocjalehjvczwep.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_jiTPujKev4H4m-H_ABFE1w_rRvHNCVZ';
 
 let accessKey = '';
+let clienteId = null;
+let clienteNome = '';
 
 function showAccessScreen(screen) {
   document.getElementById('access-card-register').style.display = screen==='register' ? 'block' : 'none';
@@ -2335,14 +2375,15 @@ function generateAccessKey() {
   return `MAM-${part(4)}-${part(4)}`;
 }
 
-async function supaFetch(method, path, body=null) {
+async function supaFetch(method, path, body=null, prefer=null) {
+  const p = prefer !== null ? prefer : (method==='POST' ? 'return=representation' : '');
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Prefer': method==='POST' ? 'return=representation' : ''
+      'Prefer': p
     },
     body: body ? JSON.stringify(body) : null
   });
@@ -2427,6 +2468,35 @@ function enterWithKey() {
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
+// Valida a chave contra a tabela de clientes da base (projeto gestor-mam).
+// Em caso de sucesso, carrega o cliente em memória (id + nome) e devolve true.
+async function validarChave(chave) {
+  try {
+    const result = await supaFetch('GET', `clientes?chave_acesso=eq.${encodeURIComponent(chave)}&excluido_em=is.null&select=id,nome,questionario_status`);
+    if(!result || result.length===0) return false;
+    const c = result[0];
+    accessKey = chave;
+    clienteId = c.id;
+    clienteNome = c.nome || '';
+    userData = { name: c.nome || '', company: c.nome || '', email: '', phone: '' };
+    return true;
+  } catch(err) {
+    console.error(err);
+    return false;
+  }
+}
+
+// Libera o diagnóstico após chave válida.
+function entrarNoDiagnostico() {
+  localStorage.setItem('mam_access_key', accessKey);
+  localStorage.setItem('mam_key_used', 'true');
+  const cn = document.getElementById('report-company-name');
+  if(cn) cn.textContent = clienteNome || '';
+  document.getElementById('screen-access').style.display = 'none';
+  document.getElementById('screen-start').style.display = 'flex';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
 async function useAccessKey() {
   const btn = document.getElementById('btn-use-key');
   const btnText = document.getElementById('btn-use-key-text');
@@ -2437,43 +2507,26 @@ async function useAccessKey() {
   btnText.innerHTML = '<span class="spinner-access"></span> Validando...';
   errKey.classList.remove('show');
 
-  try {
-    const result = await supaFetch('GET', `acessos?chave=eq.${chave}&select=chave,usado`);
-
-    if(!result || result.length===0) {
-      errKey.textContent = 'Chave não encontrada. Verifique e tente novamente.';
-      errKey.classList.add('show');
-      btn.disabled = false;
-      btnText.textContent = 'Acessar o Diagnóstico →';
-      return;
-    }
-
-    if(result[0].usado) {
-      errKey.textContent = 'Esta chave já foi utilizada e não pode ser reutilizada.';
-      errKey.classList.add('show');
-      btn.disabled = false;
-      btnText.textContent = 'Acessar o Diagnóstico →';
-      return;
-    }
-
-    // Válida — liberar
-    accessKey = chave;
-    supaFetch('PATCH', `acessos?chave=eq.${chave}`, { usado: true }).catch(console.error);
-    localStorage.setItem('mam_access_key', chave);
-    showAccessToast('✓ Chave validada! Acessando...');
-    setTimeout(() => {
-      localStorage.setItem('mam_key_used', 'true');
-      document.getElementById('screen-access').style.display = 'none';
-      document.getElementById('screen-start').style.display = 'flex';
-      window.scrollTo({top:0,behavior:'smooth'});
-    }, 1000);
-
-  } catch(err) {
-    console.error(err);
+  const ok = await validarChave(chave);
+  if(!ok) {
+    errKey.textContent = 'Chave inválida. Verifique com a MAM e tente novamente.';
+    errKey.classList.add('show');
     btn.disabled = false;
     btnText.textContent = 'Acessar o Diagnóstico →';
-    showAccessToast('❌ Erro ao validar. Tente novamente.');
+    return;
   }
+  showAccessToast('✓ Chave validada! Acessando...');
+  setTimeout(entrarNoDiagnostico, 800);
+}
+
+// Acesso direto via link pré-atribuído (?chave=...): valida e entra sem digitação.
+async function validarChaveUrl(chave) {
+  const ok = await validarChave(chave);
+  if(ok) { entrarNoDiagnostico(); return; }
+  const errKey = document.getElementById('acc-err-key');
+  if(errKey) { errKey.textContent = 'Chave inválida. Verifique o link com a MAM.'; errKey.classList.add('show'); }
+  const btn = document.getElementById('btn-use-key');
+  if(btn) btn.disabled = false;
 }
 
 // Verificar se já tem chave salva (retomada)
