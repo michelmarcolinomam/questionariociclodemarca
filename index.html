@@ -2047,10 +2047,18 @@ async function verRelatorioSalvo(chave) {
     try { new ResizeObserver(avisarAltura).observe(document.body); } catch (e) {}
   } catch (e) { console.error('verRelatorioSalvo:', e); }
 }
-// avisa a página-mãe (gestor) da altura do relatório, p/ o iframe crescer
+// avisa a página-mãe (gestor) da altura do relatório, p/ o iframe crescer.
+// Mede pelo getBoundingClientRect do #screen-report (confiável mesmo quando o
+// scrollHeight do body vem 0 dentro do iframe).
 function avisarAltura() {
   try {
-    const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+    let h = 0;
+    const rep = document.getElementById('screen-report');
+    if (rep && rep.style.display !== 'none') {
+      const r = rep.getBoundingClientRect();
+      h = Math.ceil(r.bottom + (window.scrollY || window.pageYOffset || 0));
+    }
+    h = Math.max(h, document.body.scrollHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight);
     if (h > 200 && window.parent && window.parent !== window) window.parent.postMessage({ tipo: 'mam-relatorio-altura', altura: h }, '*');
   } catch (e) {}
 }
