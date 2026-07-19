@@ -1741,7 +1741,14 @@ function clearProgress() {
 
 // Verificar progresso salvo / chave via URL ao carregar a página
 window.addEventListener('load', () => {
-  const chaveUrl = new URLSearchParams(window.location.search).get('chave');
+  const params = new URLSearchParams(window.location.search);
+
+  // Modo "ver relatório salvo" (?relatorio=CHAVE) — usado pelo gestor para
+  // renderizar o relatório completo do cliente a partir do banco.
+  const relatorioUrl = params.get('relatorio');
+  if (relatorioUrl) { verRelatorioSalvo(relatorioUrl.toUpperCase()); return; }
+
+  const chaveUrl = params.get('chave');
   if (chaveUrl) {
     // Acesso pré-atribuído: mostra a tela de chave, pré-preenche e valida direto.
     document.getElementById('screen-access').style.display = 'flex';
@@ -2000,6 +2007,52 @@ async function salvarRespostas(bres, totPct, phase) {
 // ══════════════════════════════════════
 // RELATÓRIO
 // ══════════════════════════════════════
+// ══════════════════════════════════════
+// VER RELATÓRIO SALVO (modo interno do gestor · ?relatorio=CHAVE)
+// Reconstrói o estado a partir do banco e reaproveita o generateReport()
+// para renderizar o relatório EXATAMENTE como é entregue ao cliente.
+// ══════════════════════════════════════
+async function verRelatorioSalvo(chave) {
+  try {
+    const rows = await supaFetch('GET', `diagnostico_respostas?chave_acesso=eq.${encodeURIComponent(chave)}&select=nome_respondente,empresa,versao_questionario,respostas,fase_ciclo`);
+    if (!rows || rows.length === 0) {
+      document.body.innerHTML = '<div style="padding:48px;font-family:Manrope,sans-serif;color:#555;text-align:center">Diagnóstico ainda não respondido para esta chave.</div>';
+      avisarAltura();
+      return;
+    }
+    const d = rows[0];
+    // reconstruir o estado global que o generateReport() usa
+    selectedVersion = d.versao_questionario || 'essential';
+    userData = { name: d.nome_respondente || '', company: d.empresa || d.nome_respondente || '' };
+    answers = {};
+    (d.respostas || []).forEach((r) => {
+      const bi = (r.bloco != null ? r.bloco - 1 : 0);
+      answers[`${bi}_${r.pergunta_id}`] = r.score;
+    });
+    totalQuestions = BLOCKS.length * (selectedVersion === 'essential' ? 10 : 20);
+
+    // esconder as telas de fluxo e renderizar só o relatório
+    ['screen-access', 'screen-start', 'screen-form', 'screen-quiz'].forEach((id) => {
+      const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+    generateReport();
+
+    // modo interno: esconder CTAs de venda/refazer (são para o cliente)
+    document.querySelectorAll('.cta-section').forEach((el) => { el.style.display = 'none'; });
+
+    // auto-altura do iframe no gestor (várias medições p/ pegar os gráficos)
+    [300, 900, 1800, 3000].forEach((t) => setTimeout(avisarAltura, t));
+    window.addEventListener('resize', avisarAltura);
+  } catch (e) { console.error('verRelatorioSalvo:', e); }
+}
+// avisa a página-mãe (gestor) da altura do relatório, p/ o iframe crescer
+function avisarAltura() {
+  try {
+    const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+    if (window.parent && window.parent !== window) window.parent.postMessage({ tipo: 'mam-relatorio-altura', altura: h }, '*');
+  } catch (e) {}
+}
+
 function generateReport() {
   clearProgress();
   document.getElementById('screen-quiz').style.display='none';
